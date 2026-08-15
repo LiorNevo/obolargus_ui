@@ -1,0 +1,55 @@
+{
+  "name": "obolargus-ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Financial application UI built on lx_client",
+  "scripts": {
+    "start": "webpack serve --mode development",
+    "build": "webpack --mode production",
+    "test": "jest",
+    "lint": "eslint js --max-warnings=0",
+    "storybook": "storybook dev -p 6006"
+  },
+  "dependencies": {
+    "lx_client": "file:../lx_client",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.0.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@storybook/addon-actions": "^8.0.0",
+    "@storybook/addon-essentials": "^8.0.0",
+    "@storybook/addon-links": "^8.0.0",
+    "@storybook/react": "^8.0.0",
+    "@storybook/react-webpack5": "^8.0.0",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^16.0.0",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "html-webpack-plugin": "^5.6.0",
+    "jest": "^29.0.0",
+    "jest-environment-jsdom": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "ts-loader": "^9.0.0",
+    "typescript": "^5.5.0",
+    "webpack": "^5.90.0",
+    "webpack-cli": "^5.0.0",
+    "webpack-dev-server": "^5.0.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "jsdom",
+    "setupFiles": [
+      "<rootDir>/js/jest.setup.ts"
+    ],
+    "testMatch": [
+      "**/js/**/*.test.ts?(x)"
+    ]
+  }
+}
