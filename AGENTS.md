@@ -17,7 +17,8 @@ Operational rules for contributors and AI agents working in this app.
 
 - Health-check wiring follows `contracts/health-check.md`;
   `js/api/client.ts` targets `${API_BASE_URL}/health`.
-- `pnpm-workspace.yaml` approves `esbuild` build scripts (pnpm 11 `allowBuilds`).
+- `pnpm-workspace.yaml` approves `esbuild` and `@swc/core` build scripts
+  (pnpm 11 `allowBuilds`).
 
 ## Commands
 

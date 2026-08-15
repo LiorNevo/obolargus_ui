@@ -7,4 +7,12 @@ module.exports = {
   ],
   framework: "@storybook/react-webpack5",
   staticDirs: [],
+  webpackFinal: async (config) => {
+    config.module.rules.push({
+      test: /\.tsx$/,
+      use: "ts-loader",
+      exclude: /node_modules/,
+    });
+    return config;
+  },
 };
