@@ -17,7 +17,7 @@ repos:
     hooks:
       - id: eslint
         name: eslint (pnpm lint)
-        entry: pnpm lint
+        entry: bash scripts/lint.sh
         language: system
         types_or: [javascript, ts, tsx, jsx]
         pass_filenames: false
