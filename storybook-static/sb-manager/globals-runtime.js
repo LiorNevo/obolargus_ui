@@ -15003,7 +15003,7 @@ function UZ(e) {
 }
 function qZ(e) {
   let t = e === null ? "null" : typeof e;
-  if (t !== "string" && t !== "object") return `Unexpected doc '${t}', 
+  if (t !== "string" && t !== "object") return `Unexpected doc '${t}',
 Expected it to be 'string' or 'object'.`;
   if (uT(e)) throw new Error("doc is valid.");
   let r = Object.prototype.toString.call(e);
@@ -18628,7 +18628,7 @@ function Xne(e) {
 }
 function Jne(e) {
   let t = e === null ? "null" : typeof e;
-  if (t !== "string" && t !== "object") return `Unexpected doc '${t}', 
+  if (t !== "string" && t !== "object") return `Unexpected doc '${t}',
 Expected it to be 'string' or 'object'.`;
   if (ts(e)) throw new Error("doc is valid.");
   let r = Object.prototype.toString.call(e);
@@ -35521,23 +35521,23 @@ var Ose = Cf(), Wu = "data-scroll-locked", Nse = /* @__PURE__ */ a(function(e, t
     r === "padding" && "padding-right: ".concat(l, "px ").concat(n, ";")
   ].filter(Boolean).join(""), `
   }
-  
+
   .`).concat(ns, ` {
     right: `).concat(l, "px ").concat(n, `;
   }
-  
+
   .`).concat(os, ` {
     margin-right: `).concat(l, "px ").concat(n, `;
   }
-  
+
   .`).concat(ns, " .").concat(ns, ` {
     right: 0 `).concat(n, `;
   }
-  
+
   .`).concat(os, " .").concat(os, ` {
     margin-right: 0 `).concat(n, `;
   }
-  
+
   body[`).concat(Wu, `] {
     `).concat(g3, ": ").concat(l, `px;
   }
@@ -39864,7 +39864,7 @@ var ZO = /* @__PURE__ */ a((e) => ({ v: 5, entries: Object.entries(e).reduce(
         throw new Error(
           it`
           Invalid part '${D}', leading to id === parentId ('${k}'), inside title '${E}'
-          
+
           Did you create a path that uses the separator char accidentally, such as 'Vue <docs/>' where '/' is a separator char? See https://github.com/storybookjs/storybook/issues/6128
           `
         );

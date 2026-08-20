@@ -4686,13 +4686,13 @@ var xr = Xo, Jo = class Jo extends G {
       documentation: "https://github.com/storybookjs/storybook/blob/next/MIGRATION.md#using-implicit-actions-during-rendering-is-deprecated-\
 for-example-in-the-play-function",
       message: _`
-        We detected that you use an implicit action arg while ${t.phase} of your story.  
+        We detected that you use an implicit action arg while ${t.phase} of your story.
         ${t.deprecated ? `
 This is deprecated and won't work in Storybook 8 anymore.
 ` : ""}
         Please provide an explicit spy to your args like this:
           import { fn } from '@storybook/test';
-          ... 
+          ...
           args: {
            ${t.name}: fn()
           }`
@@ -4735,10 +4735,10 @@ var wr = Zo, en = class en extends G {
       code: 5,
       message: _`
         Called \`Preview.${t.methodName}()\` before initialization.
-        
+
         The preview needs to load the story index before most methods can be called. If you want
         to call \`${t.methodName}\`, try \`await preview.initializationPromise;\` first.
-        
+
         If you didn't call the above code, then likely it was called by an addon that needs to
         do the above.`
     });
@@ -4753,7 +4753,7 @@ var V = en, rn = class rn extends G {
       code: 6,
       message: _`
         Error fetching \`/index.json\`:
-        
+
         ${t.text}
 
         If you are in development, this likely indicates a problem with your Storybook process,
@@ -4774,7 +4774,7 @@ var _r = rn, tn = class tn extends G {
       message: _`
         Tried to render docs entry ${t.storyId} but it is a MDX file that has no CSF
         references, or autodocs for a CSF file that some doesn't refer to itself.
-        
+
         This likely is an internal error in Storybook's indexing, or you've attached the
         \`attached-mdx\` tag to an MDX file that is not attached.`
     });
@@ -4852,20 +4852,20 @@ var Fr = an, ln = class ln extends G {
       code: 12,
       message: _`
       Incorrect use of mount in the play function.
-      
-      To use mount in the play function, you must satisfy the following two requirements: 
-      
-      1. You *must* destructure the mount property from the \`context\` (the argument passed to your play function). 
+
+      To use mount in the play function, you must satisfy the following two requirements:
+
+      1. You *must* destructure the mount property from the \`context\` (the argument passed to your play function).
          This makes sure that Storybook does not start rendering the story before the play function begins.
-      
-      2. Your Storybook framework or builder must be configured to transpile to ES2017 or newer. 
-         This is because destructuring statements and async/await usages are otherwise transpiled away, 
+
+      2. Your Storybook framework or builder must be configured to transpile to ES2017 or newer.
+         This is because destructuring statements and async/await usages are otherwise transpiled away,
          which prevents Storybook from recognizing your usage of \`mount\`.
-      
-      Note that Angular is not supported. As async/await is transpiled to support the zone.js polyfill. 
-      
+
+      Note that Angular is not supported. As async/await is transpiled to support the zone.js polyfill.
+
       More info: https://storybook.js.org/docs/writing-tests/interaction-testing#run-code-before-the-component-gets-rendered
-      
+
       Received the following play function:
       ${t.playFunction}`
     });
@@ -4893,13 +4893,13 @@ var Dr = cn, pn = class pn extends G {
       code: 15,
       message: _`
         No component is mounted in your story.
-        
+
         This usually occurs when you destructure mount in the play function, but forget to call it.
-        
+
         For example:
 
         async play({ mount, canvasElement }) {
-          // 👈 mount should be called: await mount(); 
+          // 👈 mount should be called: await mount();
           const canvas = within(canvasElement);
           const button = await canvas.findByRole('button');
           await userEvent.click(button);
@@ -4947,8 +4947,8 @@ var $o = un, fn = class fn extends G {
       documentation: "https://github.com/storybookjs/storybook/issues/26606",
       message: _`
         There was a failure when generating detailed ArgTypes in ${t.language} for:
-        ${JSON.stringify(t.type, null, 2)} 
-        
+        ${JSON.stringify(t.type, null, 2)}
+
         Storybook will fall back to use a generic type description instead.
 
         This type is either not supported or it is a bug in the docgen generation in Storybook.
@@ -4968,10 +4968,10 @@ var Yo = fn, yn = class yn extends G {
       // documentation: '',
       message: _`
         Encountered an unsupported value "${t.value}" when setting the viewport ${t.dimension} dimension.
-        
+
         The Storybook plugin only supports values in the following units:
         - px, vh, vw, em, rem and %.
-        
+
         You can either change the viewport for this story to use one of the supported units or skip the test by adding '!test' to the story's tags per https://storybook.js.org/docs/writing-stories/tags
       `
     });
@@ -6364,7 +6364,7 @@ var iu = /* @__PURE__ */ n((r, e, t) => {
     Error sorting stories with sort parameter ${e}:
 
     > ${o.message}
-    
+
     Are you using a V6-style sort function in V7 mode?
 
     More info: https://github.com/storybookjs/storybook/blob/next/MIGRATION.md#v7-style-story-sort
