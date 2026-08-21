@@ -11,10 +11,11 @@ import type {
   ExecutionStatus,
   PanelMode,
 } from "./types";
+import ComparisonView from "./ComparisonView";
+import "./styles/ComparisonView.css";
 
 interface DocsExamplePanelProps {
   snippet: ExampleSnippet;
-  /** Shared engine worker; undefined when the WASM runtime failed to load. */
   engine: EngineWorker | undefined;
 }
 
@@ -41,7 +42,6 @@ const classifyError = (error: unknown): ExecutionStatus => {
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-/** Builds the JSON inputs payload the engine worker expects. */
 const buildEngineInputs = (
   rulesYaml: string,
   inputData: Record<string, unknown> | undefined,
@@ -77,8 +77,6 @@ function DocsExamplePanel({ snippet, engine }: DocsExamplePanelProps) {
   const activeRulesYaml = editState?.currentRulesYaml ?? snippet.rulesYaml;
   const activeInputData = editState?.currentInputData ?? snippet.inputData;
 
-  // Hide the original static code block while editing so the page shows a
-  // single source of truth for the (edited) rules.
   useEffect(() => {
     snippet.originalElement.style.visibility = mode === "edit" ? "hidden" : "";
     snippet.originalElement.style.marginBottom = mode === "edit" ? "0" : "";
@@ -88,12 +86,19 @@ function DocsExamplePanel({ snippet, engine }: DocsExamplePanelProps) {
     };
   }, [mode, snippet.originalElement]);
 
+  useEffect(() => {
+    return () => {
+      runIdRef.current += 1;
+    };
+  }, []);
+
   const runExample = useCallback(async () => {
     if (!engine || isRunning) {
       return;
     }
     const runId = runIdRef.current + 1;
     runIdRef.current = runId;
+
     const { payload, error: buildError } = buildEngineInputs(
       activeRulesYaml,
       activeInputData,
@@ -112,11 +117,16 @@ function DocsExamplePanel({ snippet, engine }: DocsExamplePanelProps) {
 
     setIsRunning(true);
     const startedAt = performance.now();
+    const timeoutMs = (snippet.timeout ?? DEFAULT_TIMEOUT_SECONDS) * 1000;
     try {
-      const output = await engine.lx_engine_run_rules(payload);
-      if (runIdRef.current !== runId) {
-        return;
-      }
+      const response = await Promise.race([
+        engine.lx_engine_run_rules(payload),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Execution timed out")), timeoutMs)
+        ),
+      ]);
+      if (runIdRef.current !== runId) return;
+      const output = JSON.parse(response as string);
       setResult({
         status: "success",
         output,
@@ -124,12 +134,18 @@ function DocsExamplePanel({ snippet, engine }: DocsExamplePanelProps) {
         timestamp: new Date(),
       });
     } catch (error) {
-      if (runIdRef.current !== runId) {
-        return;
-      }
+      if (runIdRef.current !== runId) return;
+      const status = classifyError(error);
+      const isTimeout =
+        status === "timeout" ||
+        (error instanceof Error && /timed?\s*out/i.test(error.message));
       setResult({
-        status: classifyError(error),
-        error: { message: errorMessage(error) },
+        status: isTimeout ? "timeout" : status,
+        error: {
+          message: isTimeout
+            ? `Execution timed out after ${timeoutMs / 1000}s`
+            : errorMessage(error),
+        },
         durationMs: performance.now() - startedAt,
         timestamp: new Date(),
       });
@@ -144,9 +160,7 @@ function DocsExamplePanel({ snippet, engine }: DocsExamplePanelProps) {
   const enterEditMode = useCallback(() => {
     setEditState({
       currentRulesYaml: snippet.rulesYaml,
-      currentInputData: snippet.inputData
-        ? { ...snippet.inputData }
-        : undefined,
+      currentInputData: snippet.inputData ? { ...snippet.inputData } : undefined,
       isDirty: false,
     });
     setMode("edit");
@@ -168,50 +182,50 @@ function DocsExamplePanel({ snippet, engine }: DocsExamplePanelProps) {
   );
 
   const handleReset = useCallback(() => {
+    if (!editState) return;
     setEditState({
       currentRulesYaml: snippet.rulesYaml,
-      currentInputData: snippet.inputData
-        ? { ...snippet.inputData }
-        : undefined,
+      currentInputData: snippet.inputData ? { ...snippet.inputData } : undefined,
       isDirty: false,
     });
-    setResult(undefined);
-    // Remount the editor so its document resets to the original content.
-    setEditorKey((key) => key + 1);
-  }, [snippet.rulesYaml, snippet.inputData]);
+    setEditorKey((k) => k + 1);
+  }, [editState, snippet.rulesYaml, snippet.inputData]);
 
-  const renderResult = (execution: ExecutionResult) => {
-    if (execution.status !== "success") {
-      return (
-        <div
-          className={`docs_example_panel_result docs_example_panel_result_${execution.status}`}
-          role="alert"
-        >
-          <span className="docs_example_panel_status">
-            {STATUS_LABELS[execution.status]}
-          </span>
-          <span className="docs_example_panel_error">
-            {execution.error?.message}
-          </span>
-        </div>
-      );
-    }
-    return (
-      <div
-        className="docs_example_panel_result docs_example_panel_result_success"
-        aria-live="polite"
-      >
-        <span className="docs_example_panel_meta">
-          Completed in {Math.round(execution.durationMs)} ms
-        </span>
+  const renderResult = (execution: ExecutionResult) => (
+    <div
+      className={`docs_example_panel_result docs_example_panel_result_${execution.status}`}
+      role="region"
+      aria-label={`Evaluation result: ${STATUS_LABELS[execution.status]}`}
+    >
+      <span className="docs_example_panel_status" aria-live="polite">
+        {STATUS_LABELS[execution.status]}
+      </span>
+      <span className="docs_example_panel_meta">
+        Completed in {Math.round(execution.durationMs)} ms
+      </span>
+      {execution.status === "success" && (
         <RulesView results={execution.output} />
-      </div>
-    );
-  };
+      )}
+      {execution.status === "success" &&
+        snippet.expectedOutput !== undefined && (
+          <ComparisonView
+            actualOutput={execution.output}
+            expectedOutput={snippet.expectedOutput}
+          />
+        )}
+      {execution.error && (
+        <span className="docs_example_panel_error" role="alert">
+          {execution.error.message}
+        </span>
+      )}
+    </div>
+  );
 
   const runDisabledTitle = !engine
-    ? "Interactive execution is unavailable: the lx_engine runtime could not be loaded in this browser."
-    : undefined;
+    ? "WebAssembly runtime not available"
+    : isRunning
+      ? "Already running"
+      : "Run this example";
 
   if (mode === "edit") {
     return (

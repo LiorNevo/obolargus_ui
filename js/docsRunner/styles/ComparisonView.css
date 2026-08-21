@@ -1,0 +1,60 @@
+/* Comparison view styles for pass/fail indicators and diff display. */
+
+.docs_example_comparison {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.85rem;
+}
+
+.docs_example_comparison_pass {
+  background: #dafbe1;
+  border: 1px solid #22863a;
+}
+
+.docs_example_comparison_fail {
+  background: #fff5f5;
+  border: 1px solid #d73a49;
+}
+
+.docs_example_comparison_indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.docs_example_comparison_check {
+  color: #22863a;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.docs_example_comparison_x {
+  color: #d73a49;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.docs_example_comparison_label {
+  font-weight: 600;
+  color: #1f2933;
+}
+
+.docs_example_comparison_fail .docs_example_comparison_label {
+  color: #86181d;
+}
+
+.docs_example_comparison_diff {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
+}
