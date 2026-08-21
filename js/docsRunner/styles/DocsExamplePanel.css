@@ -1,0 +1,143 @@
+/* Docs example runner panels injected into gateway docs pages. */
+
+.docs_example_panel_host {
+  display: block;
+}
+
+.docs_example_panel {
+  margin: 0.5rem 0 1.25rem;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.9rem;
+  color: #1f2933;
+}
+
+.docs_example_panel_toolbar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+}
+
+.docs_example_panel_toolbar button {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.9rem;
+  border: 1px solid #c5cad1;
+  border-radius: 6px;
+  background: #f6f8fa;
+  color: #1f2933;
+  cursor: pointer;
+}
+
+.docs_example_panel_toolbar button:hover:not(:disabled) {
+  background: #eef1f4;
+}
+
+.docs_example_panel_toolbar button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.docs_example_panel_run {
+  border-color: #22863a !important;
+  background: #2da44e !important;
+  color: #ffffff !important;
+}
+
+.docs_example_panel_run:hover:not(:disabled) {
+  background: #2c974b !important;
+}
+
+.docs_example_panel_running {
+  font-size: 0.85rem;
+  color: #57606a;
+  padding: 0.25rem 0;
+}
+
+.docs_example_panel_result {
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  overflow: auto;
+  background: #ffffff;
+}
+
+.docs_example_panel_result_success {
+  border-color: #22863a;
+}
+
+.docs_example_panel_result_syntax-error,
+.docs_example_panel_result_runtime-error,
+.docs_example_panel_result_timeout {
+  border-color: #d73a49;
+  background: #fff5f5;
+}
+
+.docs_example_panel_status {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #d73a49;
+  margin-bottom: 0.35rem;
+}
+
+.docs_example_panel_result_success .docs_example_panel_status {
+  color: #22863a;
+}
+
+.docs_example_panel_error {
+  display: block;
+  font-family: monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #86181d;
+}
+
+.docs_example_panel_meta {
+  display: block;
+  font-size: 0.75rem;
+  color: #57606a;
+  margin-bottom: 0.35rem;
+}
+
+.docs_example_panel_result .lx_client_rules_view_container {
+  display: block;
+  width: auto;
+  height: auto;
+}
+
+.docs_example_panel_result .lx_client_rules_view_results {
+  margin: 0;
+}
+
+/* Edit mode layout */
+
+.docs_example_panel_edit .docs_example_panel_editors {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.docs_example_panel_edit .docs_example_panel_rules {
+  border: 1px solid #c5cad1;
+  border-radius: 6px;
+  min-height: 8rem;
+  overflow: hidden;
+}
+
+.docs_example_panel_edit .docs_example_panel_rules .lx_client_code_editor_container {
+  min-height: 8rem;
+}
+
+.docs_example_panel_edit .docs_example_panel_input {
+  min-height: 6rem;
+}
+
+.docs_example_panel_edit .lx_client_input_data_view_container {
+  height: auto;
+  min-height: 6rem;
+}

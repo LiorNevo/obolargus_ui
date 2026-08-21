@@ -11,7 +11,8 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["jest", "@testing-library/jest-dom", "node"],
     "paths": {
-      "@/*": ["./js/*"]
+      "@/*": ["./js/*"],
+      "lx_client/*": ["../lx_client/*"]
     }
   },
   "include": ["js"]

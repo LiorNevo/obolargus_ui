@@ -23,12 +23,8 @@ export default [
       ecmaVersion: 2020,
       sourceType: "module",
       globals: {
-        window: "readonly",
-        document: "readonly",
-        console: "readonly",
-        navigator: "readonly",
+        ...globals.browser,
         process: "readonly",
-        fetch: "readonly",
         describe: "readonly",
         it: "readonly",
         test: "readonly",

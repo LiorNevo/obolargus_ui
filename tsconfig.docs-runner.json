@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2021",
+    "lib": ["ES2021", "DOM", "DOM.Iterable"]
+  },
+  "include": ["js", "../lx_client/js"],
+  "exclude": [
+    "../lx_client/js/**/__tests__/**",
+    "../lx_client/js/**/__stories__/**"
+  ]
+}
