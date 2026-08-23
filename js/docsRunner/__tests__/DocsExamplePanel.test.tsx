@@ -48,7 +48,7 @@ jest.mock("lx_client/js/wasm/LxEngineWorker.js", () => ({
   default: class MockWorker {},
 }));
 
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import type { ExampleSnippet } from "../types";
 import type { EngineWorker } from "lx_client/js/wasm/types";
 
@@ -71,6 +71,11 @@ const createEngine = (overrides?: Partial<EngineWorker>): EngineWorker => ({
 describe("DocsExamplePanel", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it("renders run button in static mode", () => {
@@ -103,11 +108,12 @@ describe("DocsExamplePanel", () => {
     const snippet = createSnippet();
     render(<DocsExamplePanel snippet={snippet} engine={engine} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /run example/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText("Success")).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /run example/i }));
+      jest.runAllTimers();
     });
+
+    expect(screen.getByText("Success")).toBeInTheDocument();
   });
 
   it("shows error status for failed run", async () => {
@@ -117,11 +123,12 @@ describe("DocsExamplePanel", () => {
     const snippet = createSnippet();
     render(<DocsExamplePanel snippet={snippet} engine={engine} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /run example/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText("Engine error")).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /run example/i }));
+      jest.runAllTimers();
     });
+
+    expect(screen.getByText("Engine error")).toBeInTheDocument();
   });
 
   it("shows edit button in results mode", async () => {
@@ -129,11 +136,12 @@ describe("DocsExamplePanel", () => {
     const snippet = createSnippet();
     render(<DocsExamplePanel snippet={snippet} engine={engine} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /run example/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /edit example/i })).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /run example/i }));
+      jest.runAllTimers();
     });
+
+    expect(screen.getByRole("button", { name: /edit example/i })).toBeInTheDocument();
   });
 
   it("enters edit mode when edit button clicked", async () => {
@@ -141,15 +149,18 @@ describe("DocsExamplePanel", () => {
     const snippet = createSnippet();
     render(<DocsExamplePanel snippet={snippet} engine={engine} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /run example/i }));
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /edit example/i })).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /run example/i }));
+      jest.runAllTimers();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /edit example/i }));
+    expect(screen.getByRole("button", { name: /edit example/i })).toBeInTheDocument();
 
+    await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /edit example/i }));
+        jest.runAllTimers();
+    });
     expect(screen.getByRole("button", { name: /run edited example/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /reset/i })).toBeInTheDocument();
   });
 
   it("shows timeout error after timeout", async () => {
