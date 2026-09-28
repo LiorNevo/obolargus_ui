@@ -98,7 +98,7 @@ describe("DocsExamplePanel", () => {
     const snippet = createSnippet();
     render(<DocsExamplePanel snippet={snippet} engine={engine} />);
 
-    await act(async () => {
+    act(() => {
       fireEvent.click(screen.getByRole("button", { name: /run example/i }));
     });
 
