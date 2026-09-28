@@ -98,9 +98,17 @@ describe("DocsExamplePanel", () => {
     const snippet = createSnippet();
     render(<DocsExamplePanel snippet={snippet} engine={engine} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /run example/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /run example/i }));
+    });
 
     expect(screen.getByText("Running…")).toBeInTheDocument();
+
+    await act(async () => {
+      await jest.runAllTimersAsync();
+    });
+
+    expect(screen.queryByText("Running…")).not.toBeInTheDocument();
   });
 
   it("shows result after successful run", async () => {
@@ -110,7 +118,7 @@ describe("DocsExamplePanel", () => {
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /run example/i }));
-      jest.runAllTimers();
+      await jest.runAllTimersAsync();
     });
 
     expect(screen.getByText("Success")).toBeInTheDocument();
@@ -125,7 +133,7 @@ describe("DocsExamplePanel", () => {
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /run example/i }));
-      jest.runAllTimers();
+      await jest.runAllTimersAsync();
     });
 
     expect(screen.getByText("Engine error")).toBeInTheDocument();
@@ -138,7 +146,7 @@ describe("DocsExamplePanel", () => {
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /run example/i }));
-      jest.runAllTimers();
+      await jest.runAllTimersAsync();
     });
 
     expect(screen.getByRole("button", { name: /edit example/i })).toBeInTheDocument();
@@ -151,14 +159,14 @@ describe("DocsExamplePanel", () => {
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /run example/i }));
-      jest.runAllTimers();
+      await jest.runAllTimersAsync();
     });
 
     expect(screen.getByRole("button", { name: /edit example/i })).toBeInTheDocument();
 
     await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: /edit example/i }));
-        jest.runAllTimers();
+        await jest.runAllTimersAsync();
     });
     expect(screen.getByRole("button", { name: /run edited example/i })).toBeInTheDocument();
   });
@@ -171,18 +179,20 @@ describe("DocsExamplePanel", () => {
     const snippet = createSnippet({ timeout: 0.05 });
     const { container } = render(<DocsExamplePanel snippet={snippet} engine={engine} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /run example/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /run example/i }));
+    });
 
-    // First verify running state appears
-    await waitFor(() => {
-      expect(screen.getByText(/running/i)).toBeInTheDocument();
-    }, { timeout: 1000 });
+    expect(screen.getByText(/running/i)).toBeInTheDocument();
 
-    // Then wait for timeout error
+    await act(async () => {
+      jest.advanceTimersByTime(100);
+    });
+
     await waitFor(() => {
       const errorEl = container.querySelector(".docs_example_panel_error");
       expect(errorEl).toBeTruthy();
       expect(errorEl?.textContent).toMatch(/timed out/i);
-    }, { timeout: 5000, interval: 50 });
+    });
   }, 15000);
 });
