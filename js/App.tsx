@@ -1,15 +1,35 @@
+import { RouterProvider } from "react-router-dom";
+import ThemeProvider from "lx_client/js/components/ThemeProvider";
+import type { AppRouter } from "lx_client/js/navigation/routes";
+import { getAppRouter } from "./router";
+
+/** Props for the routed application shell. */
+export interface AppProps {
+  /**
+   * Router to render. Tests and stories inject a memory router; production
+   * omits this and uses the browser router created from the page registry.
+   */
+  router?: AppRouter;
+}
+
 /**
- * Placeholder application shell.
+ * Application root: theme provider, routed workspace and app container.
  *
- * Later versions render the financial views (dashboard, portfolios, analysis,
- * rules) on top of `lx_client` and add routing via `react-router-dom`. This
- * skeleton only proves the entry point renders.
+ * @param props - Optional injected router.
  */
-export function App() {
+export function App({ router }: AppProps = {}) {
+  const activeRouter = router ?? getAppRouter();
+
   return (
-    <main>
-      <h1>Obolargus</h1>
-      <p>Placeholder shell — financial views arrive in later iterations.</p>
-    </main>
+    <ThemeProvider>
+      <div
+        className="lx_client_app_container"
+        style={{ width: "100%", height: "100%" }}
+      >
+        <RouterProvider router={activeRouter} />
+      </div>
+    </ThemeProvider>
   );
 }
+
+export default App;

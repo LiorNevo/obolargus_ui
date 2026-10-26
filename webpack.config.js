@@ -1,5 +1,12 @@
 const path = require("path");
+const { realpathSync } = require("fs");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+
+// Resolve the installed lx_client source through its pnpm symlink so ts-loader
+// can transpile the TypeScript modules the app deep-imports.
+const lxClientSource = realpathSync(
+  path.resolve(__dirname, "node_modules/lx_client/js"),
+);
 
 module.exports = {
   entry: "./js/index.tsx",
@@ -14,14 +21,20 @@ module.exports = {
     rules: [
       {
         test: /\.tsx?$/,
-        use: "ts-loader",
-        exclude: /node_modules/,
+        use: {
+          loader: "ts-loader",
+          options: { allowTsInNodeModules: true },
+        },
+        include: [path.resolve(__dirname, "js"), lxClientSource],
       },
     ],
   },
   plugins: [new HtmlWebpackPlugin({ template: "index.html" })],
   devServer: {
     port: 8081,
+    // Deep-link reloads: the browser asks for /obolargus/portfolios, the
+    // gateway strips /obolargus, and this fallback serves index.html so the
+    // client router can resolve the path from the URL.
     historyApiFallback: true,
     client: {
       overlay: true,
