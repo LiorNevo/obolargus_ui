@@ -82,6 +82,11 @@
     "moduleNameMapper": {
       "^lx_client/(.*)$": "<rootDir>/node_modules/lx_client/$1",
       "\\.(css|less|scss|sass)$": "identity-obj-proxy"
+    },
+    "coverageThreshold": {
+      "global": {
+        "lines": 90
+      }
     }
   }
 }
