@@ -31,7 +31,7 @@ function renderLanding(initialEntry = "/") {
 }
 
 describe("LandingPage", () => {
-  it("renders Home plus the five workspace areas", () => {
+  it("renders Home plus the six workspace areas", () => {
     renderLanding();
 
     expect(
@@ -41,9 +41,9 @@ describe("LandingPage", () => {
     const workspace = screen.getByRole("navigation", {
       name: "Workspace areas",
     });
-    expect(within(workspace).getAllByRole("link")).toHaveLength(5);
+    expect(within(workspace).getAllByRole("link")).toHaveLength(6);
 
-    for (const label of ["Dashboard", "Portfolios", "Analysis", "Rules", "Settings"]) {
+    for (const label of ["Data Load", "Dashboard", "Portfolios", "Analysis", "Rules", "Settings"]) {
       expect(
         within(workspace).getByRole("link", { name: new RegExp(`^${label}`) }),
       ).toBeInTheDocument();

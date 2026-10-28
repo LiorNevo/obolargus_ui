@@ -67,7 +67,8 @@
             "moduleResolution": "Node"
           }
         }
-      ]
+      ],
+      "^.+\\.jsx?$": "babel-jest"
     },
     "testEnvironment": "jsdom",
     "setupFilesAfterEnv": [
@@ -77,7 +78,7 @@
       "**/js/**/*.test.ts?(x)"
     ],
     "transformIgnorePatterns": [
-      "/node_modules/(?!(?:\\.pnpm/[^/]+/node_modules/)?(marked|dompurify|lx_client)/)"
+      "/node_modules/(?!(?:\\.pnpm/[^/]+/node_modules/)?(marked|dompurify|lx_client|@tanstack/react-table|@tanstack/table-core|@tanstack/store|@tanstack/virtual-core)/)"
     ],
     "moduleNameMapper": {
       "^lx_client/(.*)$": "<rootDir>/node_modules/lx_client/$1",

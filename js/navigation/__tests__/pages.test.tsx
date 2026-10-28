@@ -5,6 +5,7 @@ import { PAGES } from "../pages";
 
 const USER_FACING_IDS = [
   "home",
+  "data-load",
   "dashboard",
   "portfolios",
   "analysis",
@@ -18,6 +19,11 @@ const EXPECTED_PAGES: Record<
 > = {
   home: {
     label: "Home",
+    permission: "workspace:view",
+    availability: "available",
+  },
+  "data-load": {
+    label: "Data Load",
     permission: "workspace:view",
     availability: "available",
   },
@@ -53,7 +59,7 @@ function userFacingPages(): PageDefinition[] {
 }
 
 describe("financial page registry", () => {
-  it("contains Home plus exactly the five workspace areas", () => {
+  it("contains Home, Data Load, and exactly the five placeholders", () => {
     expect(userFacingPages().map((page) => page.id)).toEqual([
       ...USER_FACING_IDS,
     ]);
@@ -73,7 +79,7 @@ describe("financial page registry", () => {
     }
   });
 
-  it("keeps Home available and the five areas not yet available", () => {
+  it("keeps Home and Data Load available and the five placeholders not yet available", () => {
     for (const page of userFacingPages()) {
       const expected =
         EXPECTED_PAGES[page.id as (typeof USER_FACING_IDS)[number]];
@@ -82,7 +88,7 @@ describe("financial page registry", () => {
     }
   });
 
-  it("derives navigation entries for all six user-facing pages", () => {
+  it("derives navigation entries for all seven user-facing pages", () => {
     const entries = createPageRegistry(PAGES).getNavigationEntries(
       UI_ACCESS_CONTEXT,
     );

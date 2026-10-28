@@ -2,13 +2,14 @@ import type { PageDefinition } from "lx_client/js/navigation/types";
 import PlaceholderPage from "lx_client/js/components/PlaceholderPage";
 import { TestPage } from "../components/TestPage";
 import { LandingPage } from "../pages/LandingPage";
+import { DataLoadPage } from "../pages/DataLoadPage";
 
 /**
  * User-facing page registry for the financial workspace.
  *
- * Home is the authenticated landing page. The five workspace areas are
- * declared now so their URLs are stable, but each renders an honest
- * "not yet available" placeholder until the area ships. The developer-only
+ * Home is the authenticated landing page. The six workspace areas are
+ * declared now; Data Load is available, while the remaining areas render an
+ * honest "not yet available" placeholder until they ship. The developer-only
  * component test page is registered last with `showInNavigation: false`, so it
  * resolves by direct URL but never appears in user navigation. Visibility is
  * explicit on every page; authentication enforcement is deferred, so the
@@ -25,6 +26,17 @@ export const PAGES: PageDefinition[] = [
     availability: "available",
     showInNavigation: true,
     element: <LandingPage title="Home" />,
+  },
+  {
+    id: "data-load",
+    path: "/data-load",
+    label: "Data Load",
+    title: "Data Load",
+    visibility: "restricted",
+    requiredPermission: "workspace:view",
+    availability: "available",
+    showInNavigation: true,
+    element: <DataLoadPage />,
   },
   {
     id: "dashboard",
