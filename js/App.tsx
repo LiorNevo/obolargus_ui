@@ -2,6 +2,7 @@ import { RouterProvider } from "react-router-dom";
 import ThemeProvider from "lx_client/js/components/ThemeProvider";
 import type { AppRouter } from "lx_client/js/navigation/routes";
 import { getAppRouter } from "./router";
+import "./styles/app.css";
 
 /** Props for the routed application shell. */
 export interface AppProps {

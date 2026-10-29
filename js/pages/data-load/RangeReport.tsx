@@ -1,9 +1,9 @@
-import React from "react";
+import React, { memo } from "react";
 import type { RangeReport as RangeReportType } from "../../types/dataLoad";
 import { LoadReport } from "./LoadReport";
 
 /** Range summary plus one ascending section per date. */
-export function RangeReport({ report }: { report: RangeReportType }) {
+export const RangeReport = memo(function RangeReport({ report }: { report: RangeReportType }) {
   return (
     <section className="obolargus_range_report" aria-label="Range report">
       <h2>Range report</h2>
@@ -51,6 +51,6 @@ export function RangeReport({ report }: { report: RangeReportType }) {
       ))}
     </section>
   );
-}
+});
 
 export default RangeReport;

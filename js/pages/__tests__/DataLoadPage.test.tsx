@@ -182,6 +182,29 @@ describe("DataLoadPage", () => {
     expect(screen.getByText(/Report completed at/)).toBeInTheDocument();
   });
 
+  it("loads a bare ticker typed into the text area", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(
+      screen.getByLabelText("Paste identifiers, one per line"),
+      "QQQM",
+    );
+    expect(
+      screen.getByRole("list", { name: "Parsed identifiers" }),
+    ).toHaveTextContent("TICKER QQQM");
+
+    await user.click(screen.getByRole("button", { name: "Load" }));
+
+    await waitFor(() => expect(mocked.loadOnce).toHaveBeenCalledTimes(1));
+    expect(mocked.loadOnce.mock.calls[0][0].identifiers).toEqual([
+      { type: "TICKER", value: "QQQM" },
+    ]);
+    expect(
+      screen.queryByText("Enter at least one identifier."),
+    ).not.toBeInTheDocument();
+  });
+
   it("disables a source through the explicit confirmation", async () => {
     const user = userEvent.setup();
     mocked.toggleSource.mockResolvedValue({ changed: true });

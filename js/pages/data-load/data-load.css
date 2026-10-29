@@ -1,0 +1,336 @@
+/* Data Load page layout. Tokens come from the active lx_client theme. */
+
+.obolargus_data_load_page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
+}
+
+.obolargus_data_load_page *,
+.obolargus_data_load_page *::before,
+.obolargus_data_load_page *::after {
+  box-sizing: border-box;
+}
+
+.obolargus_page_header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.obolargus_page_header h1,
+.obolargus_page_header p {
+  margin: 0;
+}
+
+.obolargus_page_header p {
+  color: var(--accent-muted);
+}
+
+.obolargus_status_region {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: var(--space-1) solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.obolargus_status_region:empty {
+  display: none;
+}
+
+.obolargus_alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--error);
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+  color: var(--error);
+}
+
+.obolargus_alert p {
+  margin: 0;
+}
+
+.obolargus_data_load_grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: var(--space-4);
+  align-items: start;
+  min-width: 0;
+}
+
+.obolargus_panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--border);
+  background: color-mix(in srgb, var(--border) 18%, var(--bg) 82%);
+}
+
+.obolargus_panel > section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.obolargus_panel h2,
+.obolargus_panel h3 {
+  margin: 0;
+}
+
+.obolargus_data_load_page p {
+  margin: 0;
+}
+
+.obolargus_data_load_page ul {
+  margin: 0;
+  padding-left: var(--space-4);
+}
+
+.obolargus_data_load_page ul[role="alert"] {
+  color: var(--error);
+}
+
+.obolargus_data_load_page form,
+.obolargus_data_load_page fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.obolargus_data_load_page fieldset {
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border);
+}
+
+.obolargus_data_load_page legend {
+  padding: 0 var(--space-1);
+  font-weight: 600;
+}
+
+.obolargus_form_field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.obolargus_form_field_grow {
+  flex: 1 1 16rem;
+}
+
+.obolargus_form_field_narrow {
+  flex: 0 1 10rem;
+}
+
+.obolargus_form_row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.obolargus_form_label {
+  font-weight: 500;
+  font-size: var(--font-size-body);
+  color: var(--fg);
+}
+
+.obolargus_data_load_page .obolargus_form_modes {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.obolargus_data_load_page .obolargus_form_modes legend {
+  flex: 0 0 100%;
+}
+
+.obolargus_data_load_page .obolargus_form_modes label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.obolargus_form_actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.obolargus_form_note {
+  color: var(--accent-muted);
+}
+
+.obolargus_loading_block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.obolargus_source_reason {
+  color: var(--warning);
+}
+
+.obolargus_data_load_page .obolargus_identifier_batch {
+  gap: var(--space-2);
+}
+
+.obolargus_identifier_add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.obolargus_identifier_add .obolargus-input {
+  flex: 1 1 14rem;
+}
+
+.obolargus_identifier_add .lx_client_button {
+  flex: 0 0 auto;
+}
+
+.obolargus_data_load_page .obolargus_identifier_list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  max-height: 9rem;
+  overflow: auto;
+  list-style: none;
+  padding-left: 0;
+}
+
+.obolargus_identifier_list li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--border);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.obolargus_data_load_page .obolargus_history_filters {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.obolargus_history_filters .obolargus_form_field {
+  flex: 1 1 12rem;
+}
+
+.obolargus_history_filters .obolargus_form_actions {
+  flex: 0 0 auto;
+}
+
+.obolargus_history_panel nav[aria-label="History pages"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.obolargus_history_detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.obolargus_report_panel {
+  min-width: 0;
+}
+
+.obolargus_load_report,
+.obolargus_range_report > section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.obolargus_failure_banner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--error);
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+}
+
+.obolargus_report_summary,
+.obolargus_range_report > dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.obolargus_report_summary dt,
+.obolargus_range_report > dl dt {
+  font-weight: 600;
+}
+
+.obolargus_report_summary dd,
+.obolargus_range_report > dl dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.obolargus_data_load_page pre {
+  max-width: 100%;
+  max-height: 12rem;
+  margin: 0;
+  padding: var(--space-2);
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: var(--border-width) solid var(--border);
+  background: var(--bg);
+}
+
+.obolargus_page_actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+@media (max-width: 1023px) {
+  .obolargus_data_load_grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .obolargus_panel {
+    padding: var(--space-2);
+  }
+
+  .obolargus_history_filters .obolargus_form_field {
+    flex-basis: 100%;
+  }
+}

@@ -61,4 +61,19 @@ describe("SourceCatalog", () => {
     await user.click(screen.getByRole("button", { name: "Refresh" }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
   });
+
+  it("renders shimmering rows and disables refresh while loading", () => {
+    const { container } = render(
+      <SourceCatalog
+        sources={[]}
+        busySourceId={null}
+        loading
+        onRefresh={() => undefined}
+        onToggle={() => undefined}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Refresh" })).toBeDisabled();
+    expect(container.querySelectorAll(".lx-table-skeleton-row")).toHaveLength(5);
+    expect(container.querySelectorAll(".lx_client_skeleton").length).toBeGreaterThan(0);
+  });
 });

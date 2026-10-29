@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LoadForm, validateDraft } from "../LoadForm";
 import type { DataLoadDraft, DomainEntry, SourceCatalogEntry } from "../../../types/dataLoad";
@@ -148,8 +148,88 @@ describe("LoadForm", () => {
         onSubmit={() => undefined}
       />,
     );
-    expect(screen.getByRole("button", { name: "Range start" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Range end" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Load date range" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Range start" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Range end" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Window (1–32)")).toBeInTheDocument();
+  });
+
+  it("renders placeholders while the domain and source catalogs load", () => {
+    const { container } = render(
+      <LoadForm
+        draft={DRAFT}
+        domains={DOMAINS}
+        sources={[]}
+        errors={{}}
+        running={false}
+        domainsLoading
+        catalogLoading
+        onChange={() => undefined}
+        onSubmit={() => undefined}
+      />,
+    );
+    expect(container.querySelectorAll(".lx_client_skeleton")).toHaveLength(2);
+    expect(
+      screen.queryByRole("button", { name: "Data domain" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Source" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("emits both range endpoints from one picker", async () => {
+    const user = userEvent.setup();
+    const onChange = jest.fn();
+    render(
+      <LoadForm
+        draft={{ ...DRAFT, mode: "range" }}
+        domains={DOMAINS}
+        sources={[SOURCE]}
+        errors={{}}
+        running={false}
+        onChange={onChange}
+        onSubmit={() => undefined}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Load date range" }));
+    fireEvent.click(
+      screen.getByRole("gridcell", { name: /October 1, 2026/ }),
+    );
+    fireEvent.click(
+      screen.getByRole("gridcell", { name: /October 5, 2026/ }),
+    );
+    await user.click(screen.getByRole("button", { name: /^Apply$/ }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      from: "2026-10-01",
+      to: "2026-10-05",
+    });
+  });
+
+  it("shows the pending start immediately in the range trigger", async () => {
+    const user = userEvent.setup();
+    render(
+      <LoadForm
+        draft={{ ...DRAFT, mode: "range" }}
+        domains={DOMAINS}
+        sources={[SOURCE]}
+        errors={{}}
+        running={false}
+        onChange={() => undefined}
+        onSubmit={() => undefined}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Load date range" });
+    await user.click(trigger);
+    fireEvent.click(
+      screen.getByRole("gridcell", { name: /October 1, 2026/ }),
+    );
+
+    expect(trigger).toHaveTextContent("2026-10-01 — select end");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Start Oct 1, 2026 — select an end date.",
+    );
   });
 });

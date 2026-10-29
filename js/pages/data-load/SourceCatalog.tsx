@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { Table } from "lx_client/js/components/Table";
 import { Button } from "lx_client/js/components/Button";
 import type { TableColumnDef } from "lx_client/js/components/Table";
@@ -9,14 +9,16 @@ import { SourceToggle } from "./SourceToggle";
 export interface SourceCatalogProps {
   sources: SourceCatalogEntry[];
   busySourceId: string | null;
+  loading?: boolean;
   onRefresh: () => void;
   onToggle: (source: SourceCatalogEntry, enabled: boolean) => void;
 }
 
 /** Table of configured sources, including disabled ones. */
-export function SourceCatalog({
+export const SourceCatalog = memo(function SourceCatalog({
   sources,
   busySourceId,
+  loading = false,
   onRefresh,
   onToggle,
 }: SourceCatalogProps) {
@@ -70,23 +72,25 @@ export function SourceCatalog({
   return (
     <section aria-label="Sources">
       <h2>Sources</h2>
-      <Button type="button" onClick={onRefresh}>
+      <Button type="button" onClick={onRefresh} disabled={loading}>
         Refresh
       </Button>
-      {sources.length === 0 ? (
-        <p>No upstream sources are configured.</p>
-      ) : (
+      {loading || sources.length > 0 ? (
         <Table
           tableKey="data-load-sources"
           columns={columns}
           data={sources}
+          loading={loading}
+          skeletonRows={5}
           enableSorting={false}
           enableFiltering={false}
           enablePagination={false}
         />
+      ) : (
+        <p>No upstream sources are configured.</p>
       )}
     </section>
   );
-}
+});
 
 export default SourceCatalog;

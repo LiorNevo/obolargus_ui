@@ -1,9 +1,9 @@
-import React from "react";
+import React, { memo } from "react";
 import type { HistoryDetail as HistoryDetailType } from "../../types/dataLoad";
 import { LoadReport } from "./LoadReport";
 
 /** Read-only detail for a run, range, or configuration change. */
-export function HistoryDetail({ detail }: { detail: HistoryDetailType }) {
+export const HistoryDetail = memo(function HistoryDetail({ detail }: { detail: HistoryDetailType }) {
   const { entry } = detail;
   return (
     <section aria-label="History detail">
@@ -57,6 +57,6 @@ export function HistoryDetail({ detail }: { detail: HistoryDetailType }) {
       )}
     </section>
   );
-}
+});
 
 export default HistoryDetail;

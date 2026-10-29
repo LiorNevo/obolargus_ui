@@ -67,6 +67,23 @@ const PAGE: HistoryPage = {
 };
 
 describe("HistoryPanel", () => {
+  it("renders a spinner and skeleton rows while the first page loads", () => {
+    const { container } = render(
+      <HistoryPanel
+        page={null}
+        filters={{ page: 1 }}
+        loading
+        error={null}
+        onSelect={() => undefined}
+        onPage={() => undefined}
+        onRefresh={() => undefined}
+        onClearFilters={() => undefined}
+      />,
+    );
+    expect(screen.getByText("Loading history...")).toBeInTheDocument();
+    expect(container.querySelectorAll(".lx-table-skeleton-row")).toHaveLength(6);
+  });
+
   it("lists runs and changes with running/stale labels", () => {
     render(
       <HistoryPanel

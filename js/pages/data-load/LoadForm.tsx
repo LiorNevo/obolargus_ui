@@ -5,6 +5,7 @@ import { DatePicker } from "lx_client/js/components/DatePicker/DatePicker";
 import { Input } from "lx_client/js/components/Input";
 import MultiSelect from "lx_client/js/components/MultiSelect/MultiSelect";
 import type { SelectOption } from "lx_client/js/components/MultiSelect/types";
+import { Skeleton } from "lx_client/js/components/Skeleton";
 import type {
   DataDomainId,
   DataLoadDraft,
@@ -27,11 +28,11 @@ export function validateDraft(
       domain.unavailable_reason ?? `${domain.label} is not loadable.`,
     ];
   }
-  if (draft.identifiers.length === 0) {
+  const parsedIdentifiers = parseIdentifierBatch(draft.identifierText);
+  if (parsedIdentifiers.errors.length > 0) {
+    errors.identifiers = parsedIdentifiers.errors;
+  } else if (draft.identifiers.length === 0) {
     errors.identifiers = ["Enter at least one identifier."];
-  } else {
-    const parsedErrors = parseIdentifierBatch(draft.identifierText).errors;
-    if (parsedErrors.length > 0) errors.identifiers = parsedErrors;
   }
   if (draft.mode === "single") {
     if (!draft.date) {
@@ -66,6 +67,8 @@ export interface LoadFormProps {
   errors: Record<string, string[]>;
   running: boolean;
   catalogError?: string | null;
+  domainsLoading?: boolean;
+  catalogLoading?: boolean;
   onChange: (patch: Partial<DataLoadDraft>) => void;
   onSubmit: () => void;
 }
@@ -78,12 +81,18 @@ export function LoadForm({
   errors,
   running,
   catalogError,
+  domainsLoading = false,
+  catalogLoading = false,
   onChange,
   onSubmit,
 }: LoadFormProps) {
   const selectableSources = sources.filter(
     (source) => source.enabled && source.selectable_for_domain,
   );
+  const rangeStart = parseLocalDate(draft.from);
+  const rangeEnd = parseLocalDate(draft.to);
+  const rangeValue =
+    rangeStart && rangeEnd ? { start: rangeStart, end: rangeEnd } : undefined;
 
   return (
     <form
@@ -95,42 +104,50 @@ export function LoadForm({
       }}
     >
       <h2>Load</h2>
-      <span id="data-load-domain-label">Data domain</span>
-      <MultiSelect
-        mode="single"
-        options={domains.map((domain, index) => ({
-          id: index + 1,
-          label: `${domain.label}${domain.loadable ? "" : " (not available)"}`,
-          value: domain.id,
-        }))}
-        value={[
-          {
-            id:
-              domains.findIndex((domain) => domain.id === draft.domain) + 1,
-            label:
-              domains.find((domain) => domain.id === draft.domain)?.label ??
-              draft.domain,
-            value: draft.domain,
-          },
-        ]}
-        onChange={(selected: SelectOption[]) =>
-          onChange({
-            domain: (selected[0]?.value ?? "market_data") as DataDomainId,
-          })
-        }
-        placeholder="Data domain"
-        ariaLabel="Data domain"
-        name="data-load-domain"
-      />
-      {errors.domain && (
-        <ul id="data-load-domain-error" role="alert">
-          {errors.domain.map((error) => (
-            <li key={error}>{error}</li>
-          ))}
-        </ul>
-      )}
+      <div className="obolargus_form_field">
+        <span id="data-load-domain-label" className="obolargus_form_label">
+          Data domain
+        </span>
+        {domainsLoading ? (
+          <Skeleton height="var(--control-height)" />
+        ) : (
+          <MultiSelect
+            mode="single"
+            options={domains.map((domain, index) => ({
+              id: index + 1,
+              label: `${domain.label}${domain.loadable ? "" : " (not available)"}`,
+              value: domain.id,
+            }))}
+            value={[
+              {
+                id:
+                  domains.findIndex((domain) => domain.id === draft.domain) + 1,
+                label:
+                  domains.find((domain) => domain.id === draft.domain)?.label ??
+                  draft.domain,
+                value: draft.domain,
+              },
+            ]}
+            onChange={(selected: SelectOption[]) =>
+              onChange({
+                domain: (selected[0]?.value ?? "market_data") as DataDomainId,
+              })
+            }
+            placeholder="Data domain"
+            ariaLabel="Data domain"
+            name="data-load-domain"
+          />
+        )}
+        {errors.domain && (
+          <ul id="data-load-domain-error" role="alert">
+            {errors.domain.map((error) => (
+              <li key={error}>{error}</li>
+            ))}
+          </ul>
+        )}
+      </div>
 
-      <fieldset>
+      <fieldset className="obolargus_form_modes">
         <legend>Mode</legend>
         <label>
           <input
@@ -152,20 +169,13 @@ export function LoadForm({
         </label>
       </fieldset>
 
-      {errors.identifiers && (
-        <ul id="data-load-identifiers-error" role="alert">
-          {errors.identifiers.map((error) => (
-            <li key={error}>{error}</li>
-          ))}
-        </ul>
-      )}
-
       {draft.mode === "single" ? (
-        <div>
-          <span>As-of date (UTC)</span>
+        <div className="obolargus_form_field">
+          <span className="obolargus_form_label">As-of date (UTC)</span>
           <DatePicker
             id="data-load-date"
             mode="single"
+            fullWidth
             ariaLabel="As-of date (UTC)"
             value={parseLocalDate(draft.date)}
             onChange={(value) => {
@@ -181,36 +191,38 @@ export function LoadForm({
           )}
         </div>
       ) : (
-        <fieldset>
+        <fieldset className="obolargus_form_range">
           <legend>Date range</legend>
-          <span>From</span>
-          <DatePicker
-            id="data-load-from"
-            mode="single"
-            ariaLabel="Range start"
-            value={parseLocalDate(draft.from)}
-            onChange={(value) => {
-              if (value instanceof Date) onChange({ from: formatLocalDate(value) });
-            }}
-          />
-          <span>To</span>
-          <DatePicker
-            id="data-load-to"
-            mode="single"
-            ariaLabel="Range end"
-            value={parseLocalDate(draft.to)}
-            onChange={(value) => {
-              if (value instanceof Date) onChange({ to: formatLocalDate(value) });
-            }}
-          />
-          <Input
-            id="data-load-window"
-            label="Window (1–32)"
-            type="number"
-            value={String(draft.concurrency)}
-            onChange={(value) => onChange({ concurrency: Number(value) })}
-            inputAttrs={{ min: 1, max: 32 }}
-          />
+          <div className="obolargus_form_row">
+            <div className="obolargus_form_field obolargus_form_field_grow">
+              <span className="obolargus_form_label">Range</span>
+              <DatePicker
+                id="data-load-range"
+                mode="range"
+                fullWidth
+                ariaLabel="Load date range"
+                value={rangeValue}
+                onChange={(value) => {
+                  if (value && !(value instanceof Date)) {
+                    onChange({
+                      from: formatLocalDate(value.start),
+                      to: formatLocalDate(value.end),
+                    });
+                  }
+                }}
+              />
+            </div>
+            <div className="obolargus_form_field obolargus_form_field_narrow">
+              <Input
+                id="data-load-window"
+                label="Window (1–32)"
+                type="number"
+                value={String(draft.concurrency)}
+                onChange={(value) => onChange({ concurrency: Number(value) })}
+                inputAttrs={{ min: 1, max: 32 }}
+              />
+            </div>
+          </div>
           {(errors.range || errors.concurrency) && (
             <ul role="alert">
               {[...(errors.range ?? []), ...(errors.concurrency ?? [])].map(
@@ -223,59 +235,67 @@ export function LoadForm({
         </fieldset>
       )}
 
-      <span id="data-load-source-label">Source</span>
-      <MultiSelect
-        mode="single"
-        options={[
-          { id: 0, label: "Auto — configured priority and failover", value: "" },
-          ...selectableSources.map((source, index) => ({
-            id: index + 1,
-            label: `${source.display_name} (${source.source_id})`,
-            value: source.source_id,
-          })),
-        ]}
-        value={[
-          draft.sourceId
-            ? {
-                id:
-                  selectableSources.findIndex(
-                    (source) => source.source_id === draft.sourceId,
-                  ) + 1,
-                label:
-                  selectableSources.find(
-                    (source) => source.source_id === draft.sourceId,
-                  )?.display_name ?? draft.sourceId,
-                value: draft.sourceId,
-              }
-            : { id: 0, label: "Auto", value: "" },
-        ]}
-        onChange={(selected: SelectOption[]) =>
-          onChange({ sourceId: selected[0]?.value || null })
-        }
-        placeholder="Auto — configured priority and failover"
-        ariaLabel="Source"
-        name="data-load-source"
-      />
-      {sources
-        .filter((source) => !source.selectable_for_domain)
-        .map((source) => (
-          <p key={source.source_id} className="obolargus_source_reason">
-            {source.display_name}: {source.unavailable_reason ?? "unavailable"}
-          </p>
-        ))}
-      {errors.source && (
-        <ul id="data-load-source-error" role="alert">
-          {errors.source.map((error) => (
-            <li key={error}>{error}</li>
+      <div className="obolargus_form_field">
+        <span id="data-load-source-label" className="obolargus_form_label">
+          Source
+        </span>
+        {catalogLoading && sources.length === 0 ? (
+          <Skeleton height="var(--control-height)" />
+        ) : (
+          <MultiSelect
+            mode="single"
+            options={[
+              { id: 0, label: "Auto — configured priority and failover", value: "" },
+              ...selectableSources.map((source, index) => ({
+                id: index + 1,
+                label: `${source.display_name} (${source.source_id})`,
+                value: source.source_id,
+              })),
+            ]}
+            value={[
+              draft.sourceId
+                ? {
+                    id:
+                      selectableSources.findIndex(
+                        (source) => source.source_id === draft.sourceId,
+                      ) + 1,
+                    label:
+                      selectableSources.find(
+                        (source) => source.source_id === draft.sourceId,
+                      )?.display_name ?? draft.sourceId,
+                    value: draft.sourceId,
+                  }
+                : { id: 0, label: "Auto", value: "" },
+            ]}
+            onChange={(selected: SelectOption[]) =>
+              onChange({ sourceId: selected[0]?.value || null })
+            }
+            placeholder="Auto — configured priority and failover"
+            ariaLabel="Source"
+            name="data-load-source"
+          />
+        )}
+        {sources
+          .filter((source) => !source.selectable_for_domain)
+          .map((source) => (
+            <p key={source.source_id} className="obolargus_source_reason">
+              {source.display_name}: {source.unavailable_reason ?? "unavailable"}
+            </p>
           ))}
-        </ul>
-      )}
-      {catalogError && (
-        <p role="status">
-          The source catalog is unavailable. Auto priority and failover still
-          apply. {catalogError}
-        </p>
-      )}
+        {errors.source && (
+          <ul id="data-load-source-error" role="alert">
+            {errors.source.map((error) => (
+              <li key={error}>{error}</li>
+            ))}
+          </ul>
+        )}
+        {catalogError && (
+          <p role="status" className="obolargus_form_note">
+            The source catalog is unavailable. Auto priority and failover still
+            apply. {catalogError}
+          </p>
+        )}
+      </div>
 
       <Checkbox
         id="data-load-create-missing"
@@ -285,15 +305,17 @@ export function LoadForm({
       />
 
       {draft.identifiers.length >= 90 && (
-        <p role="status">
+        <p role="status" className="obolargus_form_note">
           Large batches take longer; {draft.identifiers.length} identifiers
           will be processed.
         </p>
       )}
 
-      <Button type="submit" variant="primary" disabled={running}>
-        {running ? "Loading…" : "Load"}
-      </Button>
+      <div className="obolargus_form_actions">
+        <Button type="submit" variant="primary" disabled={running}>
+          {running ? "Loading…" : "Load"}
+        </Button>
+      </div>
     </form>
   );
 }

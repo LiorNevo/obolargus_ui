@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { Table } from "lx_client/js/components/Table";
 import Loading from "lx_client/js/components/Loading";
 import { Button } from "lx_client/js/components/Button";
@@ -36,7 +36,7 @@ function failureCount(entry: HistoryEntry): number {
 }
 
 /** Newest-first history table with total, paging, and honest states. */
-export function HistoryPanel({
+export const HistoryPanel = memo(function HistoryPanel({
   page,
   filters,
   loading,
@@ -148,7 +148,19 @@ export function HistoryPanel({
           </Button>
         </div>
       ) : loading && !page ? (
-        <Loading />
+        <div className="obolargus_loading_block" aria-busy="true">
+          <Loading compact label="Loading history..." />
+          <Table
+            tableKey="data-load-history"
+            columns={columns}
+            data={[]}
+            loading
+            skeletonRows={6}
+            enableSorting={false}
+            enableFiltering={false}
+            enablePagination={false}
+          />
+        </div>
       ) : page && page.entries.length === 0 ? (
         <div>
           <p>No entries match these filters.</p>
@@ -163,6 +175,8 @@ export function HistoryPanel({
             tableKey="data-load-history"
             columns={columns}
             data={page.entries}
+            loading={loading}
+            skeletonRows={6}
             enableSorting={false}
             enableFiltering={false}
             enablePagination={false}
@@ -190,6 +204,6 @@ export function HistoryPanel({
       ) : null}
     </section>
   );
-}
+});
 
 export default HistoryPanel;

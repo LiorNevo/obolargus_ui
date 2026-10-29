@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { memo, useEffect, useMemo, useState } from "react";
 import { Table } from "lx_client/js/components/Table";
 import { Button } from "lx_client/js/components/Button";
 import type { TableColumnDef } from "lx_client/js/components/Table";
@@ -52,7 +52,7 @@ function StoredValue({ line }: { line: IdentifierOutcome }) {
 }
 
 /** Full execution report with summary, failure banner, and lines. */
-export function LoadReport({ report }: { report: LoadReportData }) {
+export const LoadReport = memo(function LoadReport({ report }: { report: LoadReportData }) {
   const [visible, setVisible] = useState(50);
   useEffect(() => setVisible(50), [report]);
   const chunk = useMemo(
@@ -191,6 +191,6 @@ export function LoadReport({ report }: { report: LoadReportData }) {
       )}
     </section>
   );
-}
+});
 
 export default LoadReport;
