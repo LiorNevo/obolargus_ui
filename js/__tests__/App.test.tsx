@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { createMemoryRouter } from "react-router-dom";
 import { buildAppRoutes } from "lx_client/js/navigation/routes";
 import { App } from "../App";
@@ -31,6 +31,21 @@ describe("App", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("navigation", { name: "Workspace areas" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps unavailable areas out of the top bar", () => {
+    renderAppAt("/");
+
+    const primary = screen.getByRole("navigation", { name: "Primary" });
+    expect(
+      within(primary).queryByRole("link", { name: /Portfolios/ }),
+    ).toBeNull();
+    expect(
+      within(primary).queryByRole("link", { name: /Analysis/ }),
+    ).toBeNull();
+    expect(
+      within(primary).getByRole("link", { name: /Dashboard/ }),
     ).toBeInTheDocument();
   });
 

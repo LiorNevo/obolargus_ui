@@ -19,8 +19,14 @@ export interface AppLayoutProps {
  * @param props - Access-filtered navigation entries.
  */
 export function AppLayout({ navigation }: AppLayoutProps) {
+  // The top bar only advertises areas that are actually implemented. The
+  // landing page still receives every entry so planned areas stay discoverable
+  // without becoming top-bar destinations.
+  const primaryNavigation = navigation.filter(
+    (entry) => entry.availability === "available",
+  );
   return (
-    <AppShell productName="Obolargus" navigation={navigation}>
+    <AppShell productName="Obolargus" navigation={primaryNavigation}>
       <Outlet context={{ navigation }} />
     </AppShell>
   );

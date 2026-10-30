@@ -29,6 +29,7 @@
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.6.8",
+    "@types/d3": "^7.4.3",
     "@types/jest": "^29.0.0",
     "@types/jest-axe": "^3.5.9",
     "@types/js-yaml": "^4.0.9",
@@ -78,7 +79,7 @@
       "**/js/**/*.test.ts?(x)"
     ],
     "transformIgnorePatterns": [
-      "/node_modules/(?!(?:\\.pnpm/[^/]+/node_modules/)?(marked|dompurify|lx_client|@tanstack/react-table|@tanstack/table-core|@tanstack/store|@tanstack/virtual-core)/)"
+      "/node_modules/(?!(?:\\.pnpm/[^/]+/node_modules/)?(marked|dompurify|lx_client|@tanstack/react-table|@tanstack/table-core|@tanstack/store|@tanstack/virtual-core|d3(?:-[a-z0-9-]+)?|internmap|delaunator|robust-predicates|decimal\\.js)/)"
     ],
     "moduleNameMapper": {
       "^lx_client/(.*)$": "<rootDir>/node_modules/lx_client/$1",

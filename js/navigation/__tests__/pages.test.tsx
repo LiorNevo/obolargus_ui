@@ -30,7 +30,7 @@ const EXPECTED_PAGES: Record<
   dashboard: {
     label: "Dashboard",
     permission: "workspace:view",
-    availability: "not_yet_available",
+    availability: "available",
   },
   portfolios: {
     label: "Portfolios",
@@ -59,7 +59,7 @@ function userFacingPages(): PageDefinition[] {
 }
 
 describe("financial page registry", () => {
-  it("contains Home, Data Load, and exactly the five placeholders", () => {
+  it("contains Home, Data Load, and exactly the four placeholders", () => {
     expect(userFacingPages().map((page) => page.id)).toEqual([
       ...USER_FACING_IDS,
     ]);
@@ -79,7 +79,7 @@ describe("financial page registry", () => {
     }
   });
 
-  it("keeps Home and Data Load available and the five placeholders not yet available", () => {
+  it("keeps Home, Data Load, and Dashboard available and four placeholders unavailable", () => {
     for (const page of userFacingPages()) {
       const expected =
         EXPECTED_PAGES[page.id as (typeof USER_FACING_IDS)[number]];

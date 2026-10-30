@@ -3,6 +3,7 @@ import PlaceholderPage from "lx_client/js/components/PlaceholderPage";
 import { TestPage } from "../components/TestPage";
 import { LandingPage } from "../pages/LandingPage";
 import { DataLoadPage } from "../pages/DataLoadPage";
+import { DashboardPage } from "../pages/DashboardPage";
 
 /**
  * User-facing page registry for the financial workspace.
@@ -45,9 +46,9 @@ export const PAGES: PageDefinition[] = [
     title: "Dashboard",
     visibility: "restricted",
     requiredPermission: "workspace:view",
-    availability: "not_yet_available",
+    availability: "available",
     showInNavigation: true,
-    element: <PlaceholderPage title="Dashboard" />,
+    element: <DashboardPage />,
   },
   {
     id: "portfolios",
