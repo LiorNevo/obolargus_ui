@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Icon } from "lx_client/js/components/Icon";
 import type { ComparisonReport } from "./types";
 
 interface ComparisonViewProps {
@@ -96,12 +97,12 @@ function ComparisonView({ actualOutput, expectedOutput }: ComparisonViewProps) {
     >
       <div className="docs_example_comparison_indicator">
         {report.matches ? (
-          <span className="docs_example_comparison_check" aria-label="Output matches expected">
-            ✓
+          <span className="docs_example_comparison_check">
+            <Icon name="check" label="Output matches expected" size={16} />
           </span>
         ) : (
-          <span className="docs_example_comparison_x" aria-label="Output does not match expected">
-            ✗
+          <span className="docs_example_comparison_x">
+            <Icon name="close" label="Output does not match expected" size={16} />
           </span>
         )}
         <span className="docs_example_comparison_label">

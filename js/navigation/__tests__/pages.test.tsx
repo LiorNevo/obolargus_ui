@@ -4,9 +4,8 @@ import { UI_ACCESS_CONTEXT } from "../access";
 import { PAGES } from "../pages";
 
 const USER_FACING_IDS = [
-  "home",
-  "data-load",
   "dashboard",
+  "data-load",
   "portfolios",
   "analysis",
   "rules",
@@ -17,18 +16,13 @@ const EXPECTED_PAGES: Record<
   (typeof USER_FACING_IDS)[number],
   { label: string; permission: string; availability: string }
 > = {
-  home: {
-    label: "Home",
+  dashboard: {
+    label: "Dashboard",
     permission: "workspace:view",
     availability: "available",
   },
   "data-load": {
     label: "Data Load",
-    permission: "workspace:view",
-    availability: "available",
-  },
-  dashboard: {
-    label: "Dashboard",
     permission: "workspace:view",
     availability: "available",
   },
@@ -59,13 +53,17 @@ function userFacingPages(): PageDefinition[] {
 }
 
 describe("financial page registry", () => {
-  it("contains Home, Data Load, and exactly the four placeholders", () => {
+  it("makes the dashboard the root page and keeps the four placeholders", () => {
+    const root = PAGES.find((page) => page.path === "/");
+    expect(root?.id).toBe("dashboard");
     expect(userFacingPages().map((page) => page.id)).toEqual([
       ...USER_FACING_IDS,
+      "dashboard-redirect",
     ]);
-    expect(userFacingPages().map((page) => page.label)).toEqual(
-      USER_FACING_IDS.map((id) => EXPECTED_PAGES[id].label),
-    );
+    expect(userFacingPages().map((page) => page.label)).toEqual([
+      ...USER_FACING_IDS.map((id) => EXPECTED_PAGES[id].label),
+      "Dashboard",
+    ]);
   });
 
   it("classifies every user-facing page as restricted with a permission", () => {
@@ -74,13 +72,20 @@ describe("financial page registry", () => {
         EXPECTED_PAGES[page.id as (typeof USER_FACING_IDS)[number]];
 
       expect(page.visibility).toBe("restricted");
-      expect(page.requiredPermission).toBe(expected.permission);
       expect(page.requiredPermission?.length).toBeGreaterThan(0);
+      if (expected) {
+        expect(page.requiredPermission).toBe(expected.permission);
+      }
     }
   });
 
-  it("keeps Home, Data Load, and Dashboard available and four placeholders unavailable", () => {
+  it("keeps Data Load and Dashboard available and four placeholders unavailable", () => {
     for (const page of userFacingPages()) {
+      if (page.id === "dashboard-redirect") {
+        expect(page.availability).toBe("available");
+        expect(page.showInNavigation).toBe(false);
+        continue;
+      }
       const expected =
         EXPECTED_PAGES[page.id as (typeof USER_FACING_IDS)[number]];
 
@@ -88,12 +93,14 @@ describe("financial page registry", () => {
     }
   });
 
-  it("derives navigation entries for all seven user-facing pages", () => {
+  it("derives navigation entries for all six user-facing pages", () => {
     const entries = createPageRegistry(PAGES).getNavigationEntries(
       UI_ACCESS_CONTEXT,
     );
 
     expect(entries.map((entry) => entry.id)).toEqual([...USER_FACING_IDS]);
+    expect(entries.map((entry) => entry.path)).toContain("/");
+    expect(entries.map((entry) => entry.label)).not.toContain("Home");
   });
 
   it("keeps developer surfaces out of navigation", () => {
@@ -105,6 +112,7 @@ describe("financial page registry", () => {
 
     expect(ids).not.toContain("component-test");
     expect(ids).not.toContain("docs-runner");
+    expect(ids).not.toContain("dashboard-redirect");
     expect(labels).not.toContain("Component test");
     expect(labels.some((label) => label.includes("__components"))).toBe(false);
   });

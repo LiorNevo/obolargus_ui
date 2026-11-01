@@ -229,7 +229,7 @@ describe("LoadForm", () => {
 
     expect(trigger).toHaveTextContent("2026-10-01 — select end");
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Start Oct 1, 2026 — select an end date.",
+      "Oct 1, 2026 — Apply for a single date, or select an end date.",
     );
   });
 });

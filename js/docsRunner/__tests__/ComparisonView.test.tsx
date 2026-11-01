@@ -7,7 +7,9 @@ describe("ComparisonView", () => {
     render(
       <ComparisonView actualOutput={{ result: 10 }} expectedOutput={{ result: 10 }} />
     );
-    expect(screen.getByText("✓")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Output matches expected" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Matches expected")).toBeInTheDocument();
   });
 
@@ -15,7 +17,9 @@ describe("ComparisonView", () => {
     render(
       <ComparisonView actualOutput={{ result: 10 }} expectedOutput={{ result: 20 }} />
     );
-    expect(screen.getByText("✗")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Output does not match expected" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Does not match expected")).toBeInTheDocument();
   });
 

@@ -23,14 +23,11 @@ function renderAppAt(path: string) {
 }
 
 describe("App", () => {
-  it("renders the landing page at /", () => {
+  it("renders the dashboard at /", async () => {
     renderAppAt("/");
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "Home" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("navigation", { name: "Workspace areas" }),
+      await screen.findByRole("region", { name: "Dashboard" }),
     ).toBeInTheDocument();
   });
 
@@ -46,7 +43,10 @@ describe("App", () => {
     ).toBeNull();
     expect(
       within(primary).getByRole("link", { name: /Dashboard/ }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute("href", "/");
+    expect(
+      within(primary).queryByRole("link", { name: /Home/ }),
+    ).toBeNull();
   });
 
   it("renders the Portfolios placeholder for /portfolios", () => {
@@ -60,7 +60,7 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
-  it("uses the production router when none is injected", () => {
+  it("uses the production router when none is injected", async () => {
     const router = createMemoryRouter(
       buildAppRoutes(PAGES, AppLayout, UI_ACCESS_CONTEXT),
       { initialEntries: ["/"] },
@@ -71,7 +71,7 @@ describe("App", () => {
 
     expect(mockedGetAppRouter).toHaveBeenCalledTimes(1);
     expect(
-      screen.getByRole("heading", { level: 1, name: "Home" }),
+      await screen.findByRole("region", { name: "Dashboard" }),
     ).toBeInTheDocument();
   });
 });

@@ -19,7 +19,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Routed application shell rendered at the landing page through a memory router.",
+          "Routed application shell rendered at the dashboard through a memory router.",
       },
     },
   },
@@ -29,6 +29,6 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const LandingPage: Story = {
+export const Dashboard: Story = {
   args: { router },
 };

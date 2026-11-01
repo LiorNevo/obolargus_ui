@@ -31,12 +31,21 @@ function renderRoute(path: string, pages: PageDefinition[] = PAGES) {
 }
 
 describe("URL-driven routing", () => {
-  it("renders the landing page at /", () => {
+  it("renders the dashboard at /", async () => {
     renderRoute("/");
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "Home" }),
+      await screen.findByRole("region", { name: "Dashboard" }),
     ).toBeInTheDocument();
+  });
+
+  it("redirects the legacy /dashboard URL to the dashboard root", async () => {
+    const { router } = renderRoute("/dashboard");
+
+    expect(
+      await screen.findByRole("region", { name: "Dashboard" }),
+    ).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/");
   });
 
   it("renders a registered page directly without visiting the landing page", () => {
@@ -46,7 +55,7 @@ describe("URL-driven routing", () => {
       screen.getByRole("heading", { level: 1, name: "Portfolios" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { level: 1, name: "Home" }),
+      screen.queryByRole("region", { name: "Dashboard" }),
     ).not.toBeInTheDocument();
     expect(
       screen.getByText("This area is not yet available."),

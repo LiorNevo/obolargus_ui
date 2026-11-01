@@ -40,7 +40,10 @@ export const HistoryFilters = memo(function HistoryFilters({
           ariaLabel="History date range"
           value={rangeValue}
           onChange={(value) => {
-            if (value && !(value instanceof Date)) {
+            if (value instanceof Date) {
+              const date = formatLocalDate(value);
+              onChange({ from: date, to: date });
+            } else if (value) {
               onChange({
                 from: formatLocalDate(value.start),
                 to: formatLocalDate(value.end),
