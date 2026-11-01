@@ -10,6 +10,7 @@ export interface SourceCatalogProps {
   sources: SourceCatalogEntry[];
   busySourceId: string | null;
   loading?: boolean;
+  refreshing?: boolean;
   onRefresh: () => void;
   onToggle: (source: SourceCatalogEntry, enabled: boolean) => void;
 }
@@ -19,6 +20,7 @@ export const SourceCatalog = memo(function SourceCatalog({
   sources,
   busySourceId,
   loading = false,
+  refreshing = false,
   onRefresh,
   onToggle,
 }: SourceCatalogProps) {
@@ -75,6 +77,7 @@ export const SourceCatalog = memo(function SourceCatalog({
       <Button type="button" onClick={onRefresh} disabled={loading}>
         Refresh
       </Button>
+      {refreshing ? <p role="status">Refreshing sources…</p> : null}
       {loading || sources.length > 0 ? (
         <Table
           tableKey="data-load-sources"

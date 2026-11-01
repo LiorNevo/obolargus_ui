@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Dashboard } from "lx_client/js/components/Dashboard";
 import { createDashboardAdapter } from "./dashboard/createDashboardAdapter";
 
@@ -7,7 +8,11 @@ import { createDashboardAdapter } from "./dashboard/createDashboardAdapter";
  * the `lx_client` library.
  */
 export function DashboardPage() {
-  const dataAdapter = useMemo(() => createDashboardAdapter(), []);
+  const queryClient = useQueryClient();
+  const dataAdapter = useMemo(
+    () => createDashboardAdapter(queryClient),
+    [queryClient],
+  );
   return <Dashboard dataAdapter={dataAdapter} />;
 }
 

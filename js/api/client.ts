@@ -6,8 +6,10 @@ import { API_BASE_URL } from "./config";
  * Real endpoint bindings (portfolios, holdings, transactions, rules, alerts)
  * are added in later iterations; this establishes the base URL wiring.
  */
-export async function healthCheck(): Promise<{ status: string }> {
-  const response = await fetch(`${API_BASE_URL}/health`);
+export async function healthCheck(
+  signal?: AbortSignal,
+): Promise<{ status: string }> {
+  const response = await fetch(`${API_BASE_URL}/health`, { signal });
   if (!response.ok) {
     throw new Error(`health check failed with status ${response.status}`);
   }

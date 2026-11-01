@@ -1,34 +1,40 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "lx_client/js/navigation/usePageTitle";
 import Loading from "lx_client/js/components/Loading";
 import { Button } from "lx_client/js/components/Button";
 import { Skeleton } from "lx_client/js/components/Skeleton";
 import type {
-  DataDomainId,
   DomainEntry,
-  HistoryDetail as HistoryDetailType,
   HistoryFiltersValue,
-  HistoryPage,
   LoadReport as LoadReportType,
   ParsedIdentifier,
-  PersistedReport,
   RangeProgress,
   RangeReport as RangeReportType,
   SourceCatalogEntry,
 } from "../types/dataLoad";
-import {
-  DataLoadApiError,
-  fetchDomains,
-  fetchHistory,
-  fetchHistoryDetail,
-  fetchProgress,
-  fetchSources,
-  loadOnce,
-  loadRange,
-  toggleSource,
-} from "../api/dataLoad";
+import { DataLoadApiError } from "../api/dataLoad";
 import { useDataLoadStore } from "../store/dataLoadStore";
+import {
+  useDomainsQuery,
+  useHistoryDetailQuery,
+  useHistoryQuery,
+  useSourcesQuery,
+} from "../query/dataLoadQueries";
+import { useRangeProgressQuery } from "../query/progressQueries";
+import {
+  useLoadOnceMutation,
+  useLoadRangeMutation,
+  useToggleSourceMutation,
+} from "../query/mutations";
+import { invalidateAfterProgressTerminal } from "../query/invalidation";
 import { IdentifierBatchInput } from "./data-load/IdentifierBatchInput";
 import { LoadForm, validateDraft } from "./data-load/LoadForm";
 import { LoadReport } from "./data-load/LoadReport";
@@ -53,6 +59,9 @@ const FALLBACK_DOMAINS: DomainEntry[] = [
     unavailable_reason: "Holdings loading is not available in this release.",
   },
 ];
+
+const TERMINAL_PROGRESS_STATUSES: ReadonlySet<RangeProgress["status"]> =
+  new Set(["complete", "partial", "failed"]);
 
 function newGroupId(): string {
   const cryptoApi = globalThis.crypto;
@@ -153,6 +162,7 @@ function LoadPanel({
  */
 export function DataLoadPage() {
   usePageTitle("Data Load");
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = useMemo(
     () => filtersFromSearch(searchParams),
@@ -166,62 +176,68 @@ export function DataLoadPage() {
   const setInFlightRange = useDataLoadStore((state) => state.setInFlightRange);
   const reset = useDataLoadStore((state) => state.reset);
 
-  const [domains, setDomains] = useState<DomainEntry[]>(FALLBACK_DOMAINS);
-  const [domainsLoading, setDomainsLoading] = useState(true);
-  const [sources, setSources] = useState<SourceCatalogEntry[]>([]);
-  const [catalogError, setCatalogError] = useState<string | null>(null);
-  const [catalogLoading, setCatalogLoading] = useState(false);
+  const domainsQuery = useDomainsQuery();
+  const sourcesQuery = useSourcesQuery(domain);
+  const historyPageNumber = filters.page ?? 1;
+  const historyQuery = useHistoryQuery(
+    filters,
+    50,
+    (historyPageNumber - 1) * 50,
+  );
+
+  const [restoredDetailId, setRestoredDetailId] = useState<string | null>(null);
+  const detailEntryId = filters.selected ?? restoredDetailId ?? undefined;
+  const detailQuery = useHistoryDetailQuery(detailEntryId);
+  const progressQuery = useRangeProgressQuery(inFlightRange?.groupId ?? null);
+
+  const loadOnceMutation = useLoadOnceMutation();
+  const loadRangeMutation = useLoadRangeMutation();
+  const toggleSourceMutation = useToggleSourceMutation(domain);
+
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [requestError, setRequestError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [progress, setProgress] = useState<RangeProgress | null>(null);
   const [busySourceId, setBusySourceId] = useState<string | null>(null);
   const [sourceMessage, setSourceMessage] = useState<string | null>(null);
-  const [historyPage, setHistoryPage] = useState<HistoryPage | null>(null);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyError, setHistoryError] = useState<string | null>(null);
-  const [detail, setDetail] = useState<HistoryDetailType | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
   const [returnNotice, setReturnNotice] = useState<string | null>(null);
-  const restoredRef = useRef(false);
-  const pollRef = useRef<number | null>(null);
+  const restoredNoticeRef = useRef(false);
+  const terminalHandledRef = useRef<string | null>(null);
 
-  const loadCatalog = useCallback(
-    (domain: DataDomainId) => {
-      const controller = new AbortController();
-      setCatalogLoading(true);
-      setCatalogError(null);
-      fetchSources(domain, controller.signal)
-        .then((response) => setSources(response.sources))
-        .catch((error) => {
-          if (!controller.signal.aborted) setCatalogError(requestMessage(error));
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setCatalogLoading(false);
-        });
-      return () => controller.abort();
-    },
-    [],
-  );
+  const domains = domainsQuery.data?.domains ?? FALLBACK_DOMAINS;
+  const domainsLoading = domainsQuery.isPending;
+  const sources = sourcesQuery.data?.sources ?? [];
+  const catalogLoading = sourcesQuery.isPending;
+  const catalogRefreshing =
+    sourcesQuery.isFetching && sourcesQuery.data !== undefined;
+  const catalogFailure = sourcesQuery.error ?? sourcesQuery.failureReason;
+  const catalogError = catalogFailure
+    ? requestMessage(catalogFailure)
+    : null;
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchDomains(controller.signal)
-      .then((catalog) => setDomains(catalog.domains))
-      .catch(() => {
-        // The fallback catalog keeps the form usable with an honest reason.
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setDomainsLoading(false);
-      });
-    return () => controller.abort();
-  }, []);
+  const historyPage = historyQuery.data ?? null;
+  const historyLoading = historyQuery.isPending;
+  const historyRefreshing =
+    historyQuery.isFetching && historyQuery.data !== undefined;
+  const historyFailure = historyQuery.error ?? historyQuery.failureReason;
+  const historyError = historyFailure
+    ? requestMessage(historyFailure)
+    : null;
 
-  useEffect(() => {
-    return loadCatalog(domain);
-  }, [domain, loadCatalog]);
+  const detail = detailQuery.data ?? null;
+  const detailLoading = detailQuery.isPending && Boolean(detailEntryId);
+  const detailFailure = detailQuery.error ?? detailQuery.failureReason;
+  const detailError = detailFailure
+    ? requestMessage(detailFailure)
+    : null;
+
+  const progress = inFlightRange ? progressQuery.data ?? null : null;
+  const isBackgroundRefresh = [
+    domainsQuery,
+    sourcesQuery,
+    historyQuery,
+    detailQuery,
+  ].some((query) => query.isFetching && query.data !== undefined);
 
   useEffect(() => {
     if (!running) return undefined;
@@ -233,71 +249,48 @@ export function DataLoadPage() {
   }, [running]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    setHistoryLoading(true);
-    setHistoryError(null);
-    const page = filters.page ?? 1;
-    fetchHistory(filters, 50, (page - 1) * 50, controller.signal)
-      .then(setHistoryPage)
-      .catch((error) => {
-        if (!controller.signal.aborted) setHistoryError(requestMessage(error));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setHistoryLoading(false);
-      });
-    return () => controller.abort();
-  }, [filters]);
+    restoredNoticeRef.current = false;
+    terminalHandledRef.current = null;
+  }, [inFlightRange?.groupId]);
 
   useEffect(() => {
-    if (!filters.selected) {
-      setDetail(null);
-      setDetailError(null);
-      setDetailLoading(false);
-      return undefined;
-    }
-    const controller = new AbortController();
-    setDetailError(null);
-    setDetailLoading(true);
-    fetchHistoryDetail(filters.selected, controller.signal)
-      .then(setDetail)
-      .catch((error) => {
-        if (!controller.signal.aborted) setDetailError(requestMessage(error));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setDetailLoading(false);
-      });
-    return () => controller.abort();
-  }, [filters.selected]);
-
-  useEffect(() => {
-    if (restoredRef.current || running) return;
-    restoredRef.current = true;
-    if (!inFlightRange) return;
-    fetchProgress(inFlightRange.groupId)
-      .then(async (snapshot) => {
-        setProgress(snapshot);
-        if (["complete", "partial", "failed"].includes(snapshot.status)) {
-          const entry = await fetchHistoryDetail(inFlightRange.groupId);
-          setDetail(entry);
-          setReturnNotice("The range run completed on the server.");
-        } else {
-          setReturnNotice(
-            `This run may still be running on the server (${snapshot.dates_completed} date(s) completed). Re-running is safe.`,
-          );
-        }
-      })
-      .catch(() => {
+    if (running || !inFlightRange) return;
+    const snapshot = progressQuery.data;
+    if (!snapshot) {
+      if (progressQuery.isError && !restoredNoticeRef.current) {
+        restoredNoticeRef.current = true;
         setReturnNotice(
           "This run may still be running on the server. Re-running is safe.",
         );
-      });
-  }, [inFlightRange, running]);
+      }
+      return;
+    }
 
-  useEffect(() => {
-    return () => {
-      if (pollRef.current !== null) window.clearInterval(pollRef.current);
-    };
-  }, []);
+    if (!restoredNoticeRef.current) {
+      restoredNoticeRef.current = true;
+      setReturnNotice(
+        TERMINAL_PROGRESS_STATUSES.has(snapshot.status)
+          ? "The range run completed on the server."
+          : `This run may still be running on the server (${snapshot.dates_completed} date(s) completed). Re-running is safe.`,
+      );
+    }
+
+    if (
+      TERMINAL_PROGRESS_STATUSES.has(snapshot.status) &&
+      terminalHandledRef.current !== inFlightRange.groupId
+    ) {
+      terminalHandledRef.current = inFlightRange.groupId;
+      setRestoredDetailId(inFlightRange.groupId);
+      setReturnNotice("The range run completed on the server.");
+      void invalidateAfterProgressTerminal(queryClient, inFlightRange.groupId);
+    }
+  }, [
+    inFlightRange,
+    progressQuery.data,
+    progressQuery.isError,
+    queryClient,
+    running,
+  ]);
 
   const updateFilters = useCallback(
     (patch: Partial<HistoryFiltersValue>) => {
@@ -321,6 +314,7 @@ export function DataLoadPage() {
     setRunning(true);
     setElapsed(0);
     setReturnNotice(null);
+    terminalHandledRef.current = null;
     const identifiers = draft.identifiers.map((identifier) => ({
       type: identifier.scheme,
       value: identifier.value,
@@ -328,7 +322,7 @@ export function DataLoadPage() {
 
     try {
       if (draft.mode === "single") {
-        const report = await loadOnce({
+        const report = await loadOnceMutation.mutateAsync({
           identifiers,
           date: draft.date,
           source: draft.sourceId,
@@ -350,10 +344,7 @@ export function DataLoadPage() {
           from: draft.from,
           to: draft.to,
         });
-        pollRef.current = window.setInterval(() => {
-          fetchProgress(groupId).then(setProgress).catch(() => undefined);
-        }, 2000);
-        const report = await loadRange({
+        const report = await loadRangeMutation.mutateAsync({
           identifiers,
           from: draft.from,
           to: draft.to,
@@ -370,32 +361,35 @@ export function DataLoadPage() {
           groupId,
           report,
         });
-        setInFlightRange(null);
       }
     } catch (error) {
       setRequestError(requestMessage(error));
-      setInFlightRange(null);
     } finally {
-      if (pollRef.current !== null) {
-        window.clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
+      setInFlightRange(null);
       setRunning(false);
-      setProgress(null);
     }
-  }, [domains, sources, setInFlightRange, setLastReport]);
+  }, [
+    domains,
+    loadOnceMutation,
+    loadRangeMutation,
+    setInFlightRange,
+    setLastReport,
+    sources,
+  ]);
 
   const onToggle = useCallback(
     async (source: SourceCatalogEntry, enabled: boolean) => {
       setBusySourceId(source.source_id);
       setSourceMessage(null);
       try {
-        const response = (await toggleSource(source.source_id, enabled)) as {
+        const response = (await toggleSourceMutation.mutateAsync({
+          sourceId: source.source_id,
+          enabled,
+        })) as {
           changed?: boolean;
           source?: SourceCatalogEntry;
           error?: { message?: string };
         };
-        await loadCatalog(domain);
         setSourceMessage(
           response.changed === false
             ? "The source was already in that state."
@@ -407,15 +401,18 @@ export function DataLoadPage() {
         setBusySourceId(null);
       }
     },
-    [domain, loadCatalog],
+    [toggleSourceMutation],
   );
 
   const handleSourceRefresh = useCallback(() => {
-    void loadCatalog(domain);
-  }, [domain, loadCatalog]);
+    void sourcesQuery.refetch();
+  }, [sourcesQuery]);
 
   const handleSelectHistory = useCallback(
-    (entryId: string) => updateFilters({ selected: entryId }),
+    (entryId: string) => {
+      setRestoredDetailId(null);
+      updateFilters({ selected: entryId });
+    },
     [updateFilters],
   );
 
@@ -424,25 +421,19 @@ export function DataLoadPage() {
     [updateFilters],
   );
 
-  const handleClearFilters = useCallback(
-    () => setSearchParams({}, { replace: true }),
-    [setSearchParams],
-  );
+  const handleClearFilters = useCallback(() => {
+    setRestoredDetailId(null);
+    setSearchParams({}, { replace: true });
+  }, [setSearchParams]);
 
   const handleHistoryRefresh = useCallback(() => {
-    const next = new URLSearchParams(searchParams);
-    setSearchParams(next, { replace: true });
-    setHistoryLoading(true);
-    fetchHistory(filters, 50, ((filters.page ?? 1) - 1) * 50)
-      .then(setHistoryPage)
-      .catch((error) => setHistoryError(requestMessage(error)))
-      .finally(() => setHistoryLoading(false));
-  }, [filters, searchParams, setSearchParams]);
+    void historyQuery.refetch();
+  }, [historyQuery]);
 
-  const handleCloseDetail = useCallback(
-    () => updateFilters({ selected: undefined }),
-    [updateFilters],
-  );
+  const handleCloseDetail = useCallback(() => {
+    setRestoredDetailId(null);
+    updateFilters({ selected: undefined });
+  }, [updateFilters]);
 
   const handleReset = useCallback(() => {
     if (window.confirm("Clear the draft and the last report?")) reset();
@@ -464,6 +455,7 @@ export function DataLoadPage() {
         {progress
           ? ` Date ${progress.dates_completed} of ${progress.dates_requested ?? "?"}.`
           : null}
+        {isBackgroundRefresh ? " Refreshing data…" : null}
         {returnNotice}
         {sourceMessage}
       </div>
@@ -493,6 +485,7 @@ export function DataLoadPage() {
             sources={sources}
             busySourceId={busySourceId}
             loading={catalogLoading}
+            refreshing={catalogRefreshing}
             onRefresh={handleSourceRefresh}
             onToggle={onToggle}
           />
@@ -536,6 +529,7 @@ export function DataLoadPage() {
           page={historyPage}
           filters={filters}
           loading={historyLoading}
+          refreshing={historyRefreshing}
           error={historyError}
           onSelect={handleSelectHistory}
           onPage={handleHistoryPage}

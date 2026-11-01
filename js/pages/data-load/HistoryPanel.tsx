@@ -10,6 +10,7 @@ export interface HistoryPanelProps {
   page: HistoryPage | null;
   filters: HistoryFiltersValue;
   loading: boolean;
+  refreshing?: boolean;
   error: string | null;
   onSelect: (entryId: string) => void;
   onPage: (page: number) => void;
@@ -40,6 +41,7 @@ export const HistoryPanel = memo(function HistoryPanel({
   page,
   filters,
   loading,
+  refreshing = false,
   error,
   onSelect,
   onPage,
@@ -147,7 +149,11 @@ export const HistoryPanel = memo(function HistoryPanel({
             Retry
           </Button>
         </div>
-      ) : loading && !page ? (
+      ) : null}
+      {refreshing ? (
+        <p role="status">Refreshing history…</p>
+      ) : null}
+      {loading && !page ? (
         <div className="obolargus_loading_block" aria-busy="true">
           <Loading compact label="Loading history..." />
           <Table
@@ -161,7 +167,7 @@ export const HistoryPanel = memo(function HistoryPanel({
             enablePagination={false}
           />
         </div>
-      ) : page && page.entries.length === 0 ? (
+      ) : !error && page && page.entries.length === 0 ? (
         <div>
           <p>No entries match these filters.</p>
           <Button type="button" onClick={onClearFilters}>

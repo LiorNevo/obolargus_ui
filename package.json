@@ -12,6 +12,7 @@
     "storybook": "storybook dev -p 6006"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.105.1",
     "js-yaml": "^4.3.1",
     "lx_client": "file:../lx_client",
     "react": "^19.0.0",

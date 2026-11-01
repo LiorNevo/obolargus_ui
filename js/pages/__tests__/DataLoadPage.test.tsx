@@ -1,12 +1,13 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { axe } from "jest-axe";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import { DataLoadPage } from "../DataLoadPage";
+import { renderWithQueryClient } from "../../query/testUtils";
 import { useDataLoadStore } from "../../store/dataLoadStore";
 import * as api from "../../api/dataLoad";
-import type { LoadReport } from "../../types/dataLoad";
+import type { HistoryEntry, LoadReport } from "../../types/dataLoad";
 
 jest.mock("../../api/dataLoad", () => {
   const actual = jest.requireActual("../../api/dataLoad");
@@ -70,11 +71,52 @@ const REPORT: LoadReport = {
   duration_ms: 1000,
 };
 
+
+function historyEntry(overrides: Partial<HistoryEntry> = {}): HistoryEntry {
+  return {
+    entry_id: "entry-1",
+    entry_type: "load_run",
+    started_at: "2026-10-01T00:00:00Z",
+    ended_at: "2026-10-01T00:00:01Z",
+    data_domain: "market_data",
+    requested_source: null,
+    answering_sources: ["yahoo_finance"],
+    identifiers_requested_raw: 1,
+    identifiers_duplicated: 0,
+    identifiers_attempted: 1,
+    loaded: 1,
+    no_op: 0,
+    not_resolved: 0,
+    no_data_for_date: 0,
+    unsupported_scheme: 0,
+    rejected: 0,
+    source_unavailable: 0,
+    rate_limited: 0,
+    storage_failure: 0,
+    assets_created: 0,
+    assets_adopted: 0,
+    status: "complete",
+    stale: false,
+    duration_ms: 1000,
+    date_from: "2026-10-01",
+    date_to: "2026-10-01",
+    dates_requested: 1,
+    dates_completed: 1,
+    dates_with_loads: 1,
+    range_concurrency: null,
+    source_id: null,
+    before_enabled: null,
+    after_enabled: null,
+    actor: null,
+    ...overrides,
+  };
+}
+
 function renderPage() {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <MemoryRouter initialEntries={["/data-load"]}>{children}</MemoryRouter>
   );
-  return render(<DataLoadPage />, { wrapper });
+  return renderWithQueryClient(<DataLoadPage />, { wrapper });
 }
 
 beforeEach(() => {
@@ -115,6 +157,16 @@ beforeEach(() => {
     total: 0,
     limit: 50,
     offset: 0,
+  });
+  mocked.fetchProgress.mockResolvedValue({
+    group_id: "group-1",
+    status: "running",
+    dates_requested: 2,
+    dates_completed: 1,
+    dates_failed: 0,
+    dates_with_loads: 1,
+    started_at: "2026-10-01T00:00:00Z",
+    updated_at: "2026-10-01T00:00:01Z",
   });
   mocked.loadOnce.mockResolvedValue(REPORT);
   mocked.loadRange.mockResolvedValue({
@@ -210,10 +262,19 @@ describe("DataLoadPage", () => {
     mocked.toggleSource.mockResolvedValue({ changed: true });
     renderPage();
     const sources = await screen.findByRole("region", { name: "Sources" });
+    await screen.findAllByText("Yahoo Finance");
+    const sourceCalls = mocked.fetchSources.mock.calls.length;
+    const historyCalls = mocked.fetchHistory.mock.calls.length;
     await user.click(within(sources).getByRole("button", { name: "Disable Yahoo Finance" }));
     await user.click(within(sources).getByRole("button", { name: "Confirm disable" }));
     await waitFor(() =>
       expect(mocked.toggleSource).toHaveBeenCalledWith("yahoo_finance", false),
+    );
+    await waitFor(() =>
+      expect(mocked.fetchSources.mock.calls.length).toBeGreaterThan(sourceCalls),
+    );
+    await waitFor(() =>
+      expect(mocked.fetchHistory.mock.calls.length).toBeGreaterThan(historyCalls),
     );
   });
 
@@ -249,12 +310,34 @@ describe("DataLoadPage", () => {
     mocked.toggleSource.mockRejectedValueOnce(new Error("offline"));
     renderPage();
     const sources = await screen.findByRole("region", { name: "Sources" });
+    await screen.findAllByText("Yahoo Finance");
     await user.click(within(sources).getByRole("button", { name: "Disable Yahoo Finance" }));
     await user.click(within(sources).getByRole("button", { name: "Confirm disable" }));
     await waitFor(() => expect(screen.getByText(/offline/)).toBeInTheDocument());
     expect((await screen.findAllByText("Yahoo Finance")).length).toBeGreaterThan(0);
   });
 
+
+  it("keeps cached history rows visible when a background refresh fails", async () => {
+    const user = userEvent.setup();
+    mocked.fetchHistory.mockResolvedValue({
+      entries: [historyEntry()],
+      total: 1,
+      limit: 50,
+      offset: 0,
+    });
+    renderPage();
+    expect(await screen.findByText("1 entries")).toBeInTheDocument();
+
+    mocked.fetchHistory.mockRejectedValueOnce(new Error("refresh offline"));
+    const history = screen.getByRole("region", { name: "History" });
+    await user.click(within(history).getByRole("button", { name: "Refresh" }));
+
+    expect(
+      await screen.findByText(/History could not be fetched\. refresh offline/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("1 entries")).toBeInTheDocument();
+  });
   it("opens a history entry detail", async () => {
     const user = userEvent.setup();
     mocked.fetchHistory.mockResolvedValue({

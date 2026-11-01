@@ -1,4 +1,6 @@
 import { createDashboardAdapter } from "../createDashboardAdapter";
+import { createTestQueryClient } from "../../../query/client";
+import { DashboardApiError } from "../../../api/dashboard";
 import type { SeriesResponseWire } from "../../../types/dashboard";
 
 function point(date: string, value: string, source = "test") {
@@ -42,7 +44,7 @@ function page(
 describe("dashboard data adapter", () => {
   it("converts the inclusive UI range to an exclusive server bound and pages", async () => {
     const calls: unknown[] = [];
-    const adapter = createDashboardAdapter({
+    const adapter = createDashboardAdapter(createTestQueryClient(), {
       searchAssets: () => Promise.resolve({ items: [] }),
       loadSeriesPage: (_assetId, params) => {
         calls.push(params);
@@ -68,7 +70,7 @@ describe("dashboard data adapter", () => {
   });
 
   it("keeps the first of duplicate dates", async () => {
-    const adapter = createDashboardAdapter({
+    const adapter = createDashboardAdapter(createTestQueryClient(), {
       searchAssets: () => Promise.resolve({ items: [] }),
       loadSeriesPage: () =>
         Promise.resolve(
@@ -99,7 +101,7 @@ describe("dashboard data adapter", () => {
       adjclose: "19.80",
       volume: 0,
     });
-    const adapter = createDashboardAdapter({
+    const adapter = createDashboardAdapter(createTestQueryClient(), {
       searchAssets: () => Promise.resolve({ items: [] }),
       loadSeriesPage: () =>
         Promise.resolve(page([point("2026-10-01", numericValue)], null)),
@@ -113,7 +115,7 @@ describe("dashboard data adapter", () => {
   });
 
   it("maps malformed values into excluded bars rather than throwing", async () => {
-    const adapter = createDashboardAdapter({
+    const adapter = createDashboardAdapter(createTestQueryClient(), {
       searchAssets: () => Promise.resolve({ items: [] }),
       loadSeriesPage: () =>
         Promise.resolve(page([point("2026-01-02", "not-json")], null)),
@@ -124,5 +126,104 @@ describe("dashboard data adapter", () => {
       { signal: new AbortController().signal },
     );
     expect(series.points[0].open).toBe("");
+  });
+
+  it("deduplicates concurrent reads and reuses the fresh cache", async () => {
+    const client = createTestQueryClient();
+    let calls = 0;
+    let resolveRead!: (value: SeriesResponseWire) => void;
+    const pending = new Promise<SeriesResponseWire>((resolve) => {
+      resolveRead = resolve;
+    });
+    const adapter = createDashboardAdapter(client, {
+      searchAssets: () => Promise.resolve({ items: [] }),
+      loadSeriesPage: () => {
+        calls += 1;
+        return calls === 1
+          ? pending
+          : Promise.resolve(page([point("2026-01-02", value)], null));
+      },
+    });
+
+    const options = { signal: new AbortController().signal };
+    const first = adapter.loadDailyBars(
+      "asset-1",
+      { from: "2026-01-02", to: "2026-01-03" },
+      options,
+    );
+    const second = adapter.loadDailyBars(
+      "asset-1",
+      { from: "2026-01-02", to: "2026-01-03" },
+      options,
+    );
+    resolveRead(page([point("2026-01-02", value)], null));
+
+    const [a, b] = await Promise.all([first, second]);
+    expect(calls).toBe(1);
+    expect(a).toEqual(b);
+
+    const cached = await adapter.loadDailyBars(
+      "asset-1",
+      { from: "2026-01-02", to: "2026-01-03" },
+      options,
+    );
+    expect(calls).toBe(1);
+    expect(cached.points).toHaveLength(1);
+  });
+
+  it("maps and caches asset search results", async () => {
+    const client = createTestQueryClient();
+    const searchAssets = jest.fn().mockResolvedValue({
+      items: [
+        {
+          id: "asset-1",
+          display_name: "Apple Inc.",
+          asset_type: "equity",
+          currency: "USD",
+          primary_identifier: "TICKER:XNAS:AAPL",
+        },
+      ],
+    });
+    const adapter = createDashboardAdapter(client, {
+      searchAssets,
+      loadSeriesPage: () => Promise.resolve(page([], null)),
+    });
+    const options = { signal: new AbortController().signal, limit: 10 };
+
+    await expect(adapter.searchAssets(" Apple ", options)).resolves.toEqual([
+      {
+        id: "asset-1",
+        displayName: "Apple Inc.",
+        assetType: "equity",
+        currency: "USD",
+        primaryIdentifier: "TICKER:XNAS:AAPL",
+      },
+    ]);
+    await expect(adapter.searchAssets(" Apple ", options)).resolves.toHaveLength(1);
+    expect(searchAssets).toHaveBeenCalledTimes(1);
+    expect(searchAssets).toHaveBeenCalledWith("Apple", options);
+  });
+
+  it("maps transport failures to DashboardDataError", async () => {
+    const adapter = createDashboardAdapter(createTestQueryClient(), {
+      searchAssets: () =>
+        Promise.reject(
+          new DashboardApiError(503, "unavailable", "try later", true),
+        ),
+      loadSeriesPage: () => Promise.resolve(page([], null)),
+    });
+
+    await expect(
+      adapter.searchAssets("Apple", {
+        signal: new AbortController().signal,
+        limit: 10,
+      }),
+    ).rejects.toMatchObject({
+      name: "DashboardDataError",
+      message: "try later",
+      code: "unavailable",
+      retryable: true,
+      status: 503,
+    });
   });
 });

@@ -76,4 +76,18 @@ describe("SourceCatalog", () => {
     expect(container.querySelectorAll(".lx-table-skeleton-row")).toHaveLength(5);
     expect(container.querySelectorAll(".lx_client_skeleton").length).toBeGreaterThan(0);
   });
+
+  it("shows a non-blocking refresh state without replacing rows", () => {
+    render(
+      <SourceCatalog
+        sources={[SOURCE]}
+        busySourceId={null}
+        refreshing
+        onRefresh={() => undefined}
+        onToggle={() => undefined}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Refreshing sources");
+    expect(screen.getAllByText("Yahoo Finance").length).toBeGreaterThan(0);
+  });
 });

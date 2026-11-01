@@ -30,6 +30,28 @@ Operational rules for contributors and AI agents working in this app.
 - Runtime config (e.g. `API_BASE_URL`) goes through `js/api/config.ts` env
   wiring (`process.env.API_BASE_URL`), defaulting to `/api`.
 
+## Data fetching and caching
+
+- Every upstream read goes through the shared TanStack Query cache in
+  `js/query/`. Pages and components must not call read functions from `js/api/`
+  directly or start their own read `useEffect`.
+- Query keys are defined only in `js/query/keys.ts`. Add every
+  response-changing parameter to the key and use the existing namespace/prefix
+  helpers for invalidation.
+- Freshness and retention are explicit per query class. The current policy is:
+  catalogs 60s/10m, history 30s/10m, asset search 5m/10m, market series
+  5m/15m, and range progress 0s/30s with 2s polling until terminal.
+- Writes remain mutations in `js/query/mutations.ts` and invalidate through
+  `js/query/invalidation.ts`. Never clear the whole cache for one mutation.
+- The cache is memory-only and per browser tab. Do not persist server responses
+  to IndexedDB, localStorage, or sessionStorage; durable UI state remains in
+  Zustand stores.
+- `App` supplies one `QueryClientProvider`. Tests and stories use
+  `js/query/testUtils.tsx` so each case receives a fresh cache.
+- To add a cached read: add a key, add a query option/hook with an explicit
+  freshness policy, add invalidation if a mutation affects it, and update
+  `specs/architecture/architecture.md` when the ownership boundary changes.
+
 ## Contract notes
 
 - Health-check wiring follows `contracts/health-check.md`;

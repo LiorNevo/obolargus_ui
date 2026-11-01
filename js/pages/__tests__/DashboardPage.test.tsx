@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { DashboardPage } from "../DashboardPage";
+import { renderWithQueryClient } from "../../query/testUtils";
 
 describe("DashboardPage", () => {
   it("renders the promoted dashboard page", async () => {
-    render(<DashboardPage />);
+    renderWithQueryClient(<DashboardPage />);
     await waitFor(
       () =>
         expect(

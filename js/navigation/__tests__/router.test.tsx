@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import PlaceholderPage from "lx_client/js/components/PlaceholderPage";
 import { buildAppRoutes } from "lx_client/js/navigation/routes";
@@ -6,6 +6,7 @@ import type { PageDefinition } from "lx_client/js/navigation/types";
 import { UI_ACCESS_CONTEXT } from "../access";
 import { AppLayout } from "../AppLayout";
 import { PAGES } from "../pages";
+import { renderWithQueryClient } from "../../query/testUtils";
 
 const NESTED_PAGE: PageDefinition = {
   id: "holdings",
@@ -26,7 +27,7 @@ function renderRoute(path: string, pages: PageDefinition[] = PAGES) {
   );
   return {
     router,
-    ...render(<RouterProvider router={router} />),
+    ...renderWithQueryClient(<RouterProvider router={router} />),
   };
 }
 

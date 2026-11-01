@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
@@ -61,6 +61,7 @@ jest.mock("../../api/dataLoad", () => {
 });
 
 import { DataLoadPage } from "../DataLoadPage";
+import { renderWithQueryClient } from "../../query/testUtils";
 import { useDataLoadStore } from "../../store/dataLoadStore";
 import * as api from "../../api/dataLoad";
 
@@ -70,7 +71,7 @@ function renderPage() {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <MemoryRouter initialEntries={["/data-load"]}>{children}</MemoryRouter>
   );
-  return render(<DataLoadPage />, { wrapper });
+  return renderWithQueryClient(<DataLoadPage />, { wrapper });
 }
 
 function tableRenders(): number {

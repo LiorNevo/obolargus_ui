@@ -150,4 +150,39 @@ describe("HistoryPanel", () => {
     );
     expect(screen.getByRole("alert")).toHaveTextContent("History could not be fetched");
   });
+
+  it("shows a non-blocking refresh state without replacing rows", () => {
+    render(
+      <HistoryPanel
+        page={PAGE}
+        filters={{ page: 1 }}
+        loading={false}
+        refreshing
+        error={null}
+        onSelect={() => undefined}
+        onPage={() => undefined}
+        onRefresh={() => undefined}
+        onClearFilters={() => undefined}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Refreshing history");
+    expect(screen.getByText("3 entries")).toBeInTheDocument();
+  });
+
+  it("keeps cached rows visible when a refresh fails", () => {
+    render(
+      <HistoryPanel
+        page={PAGE}
+        filters={{ page: 1 }}
+        loading={false}
+        error="offline"
+        onSelect={() => undefined}
+        onPage={() => undefined}
+        onRefresh={() => undefined}
+        onClearFilters={() => undefined}
+      />,
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("offline");
+    expect(screen.getByText("3 entries")).toBeInTheDocument();
+  });
 });
