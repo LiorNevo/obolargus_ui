@@ -27,6 +27,18 @@ module.exports = {
         },
         include: [path.resolve(__dirname, "js"), lxClientSource],
       },
+      // `lx_client` components inline SVG source via `require`, so expose the
+      // package's image files as raw strings (and other assets as URLs).
+      {
+        test: /\.svg$/,
+        include: [lxClientSource],
+        type: "asset/source",
+      },
+      {
+        test: /\.(webp|cur|ani|jpg|png|gif)$/,
+        include: [lxClientSource],
+        type: "asset/resource",
+      },
     ],
   },
   plugins: [new HtmlWebpackPlugin({ template: "index.html" })],
