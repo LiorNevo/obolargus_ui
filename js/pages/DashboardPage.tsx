@@ -8,11 +8,7 @@ import { createDashboardAdapter } from "./dashboard/createDashboardAdapter";
  */
 export function DashboardPage() {
   const dataAdapter = useMemo(() => createDashboardAdapter(), []);
-  return (
-    <main>
-      <Dashboard dataAdapter={dataAdapter} />
-    </main>
-  );
+  return <Dashboard dataAdapter={dataAdapter} />;
 }
 
 export default DashboardPage;
