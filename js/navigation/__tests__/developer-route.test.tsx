@@ -1,17 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { createPageRegistry } from "lx_client/js/navigation/registry";
 import { buildAppRoutes } from "lx_client/js/navigation/routes";
 import { UI_ACCESS_CONTEXT } from "../access";
 import { AppLayout } from "../AppLayout";
 import { PAGES } from "../pages";
+import { renderWithQueryClient } from "../../query/testUtils";
 
 function renderAt(path: string) {
   const router = createMemoryRouter(
     buildAppRoutes(PAGES, AppLayout, UI_ACCESS_CONTEXT),
     { initialEntries: [path] },
   );
-  return render(<RouterProvider router={router} />);
+  return renderWithQueryClient(<RouterProvider router={router} />);
 }
 
 describe("developer-only route", () => {

@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { axe } from "jest-axe";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -205,7 +205,12 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => jest.clearAllMocks());
+afterEach(async () => {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  jest.clearAllMocks();
+});
 
 describe("DataLoadPage", () => {
   it("renders the three first-class areas and the source catalog", async () => {
@@ -598,6 +603,14 @@ describe("DataLoadPage accessibility", () => {
   it("has no serious axe violations on the idle page", async () => {
     const { container } = renderPage();
     await screen.findByRole("heading", { name: "Sources" });
-    expect(await axe(container)).toHaveNoViolations();
+    await screen.findAllByText("Yahoo Finance");
+    await screen.findByText("No entries match these filters.");
+    await waitFor(() => expect(mocked.fetchDomains).toHaveBeenCalled());
+    let results;
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      results = await axe(container);
+    });
+    expect(results).toHaveNoViolations();
   });
 });
