@@ -18,4 +18,18 @@ describe("DashboardPage", () => {
       }),
     ).toBeInTheDocument();
   });
+
+  it("keeps the dashboard inside the flex page body", async () => {
+    renderWithQueryClient(<DashboardPage />);
+    const dashboard = await screen.findByRole(
+      "region",
+      { name: "Dashboard" },
+      { timeout: 3000 },
+    );
+    const page = dashboard.closest(".obolargus_dashboard_page");
+    expect(page).not.toBeNull();
+    expect(
+      page?.querySelector(".obolargus_dashboard_page_body"),
+    ).toContainElement(dashboard);
+  });
 });

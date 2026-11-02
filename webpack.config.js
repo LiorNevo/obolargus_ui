@@ -90,6 +90,11 @@ module.exports = (env = {}, argv = {}) => {
           from: themeCssPath,
           to: "theme-registry.css",
         },
+        {
+          from: path.resolve(lxClientSource, "..", "static", "cursor"),
+          to: "cursor",
+          noErrorOnMissing: true,
+        },
       ],
     }),
   ];

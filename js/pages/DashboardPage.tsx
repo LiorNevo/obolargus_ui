@@ -15,10 +15,12 @@ export function DashboardPage() {
     [queryClient],
   );
   return (
-    <>
+    <div className="obolargus_dashboard_page">
       <OfflineReadSummary />
-      <Dashboard dataAdapter={dataAdapter} />
-    </>
+      <div className="obolargus_dashboard_page_body">
+        <Dashboard dataAdapter={dataAdapter} />
+      </div>
+    </div>
   );
 }
 
