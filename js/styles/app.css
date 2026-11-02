@@ -20,3 +20,75 @@ body,
   font-size: var(--font-size-body);
   line-height: var(--line-height);
 }
+
+/* Offline runtime affordances. Fixed/sticky placement keeps them from moving
+   primary navigation or actions. */
+.obolargus_offline_status {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 60;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #2c3a52);
+  background: var(--surface, #16233a);
+  color: var(--fg, #e6edf7);
+  font-size: 12px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
+}
+
+.obolargus_offline_status[data-state="offline"] {
+  border-color: var(--warning, #d59b2a);
+}
+
+.obolargus_update_notice {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 61;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #2c3a52);
+  background: var(--surface, #16233a);
+  color: var(--fg, #e6edf7);
+  font-size: 12px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
+}
+
+.obolargus_read_status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--fg-muted, #9aa8bd);
+}
+
+.obolargus_read_status[data-source="cache"] {
+  color: var(--warning, #d59b2a);
+}
+
+.obolargus_read_status_unavailable {
+  color: var(--danger, #e56b6b);
+}
+
+.obolargus_read_status button {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.obolargus_read_status_row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0 4px 8px;
+}

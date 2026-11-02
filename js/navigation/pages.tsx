@@ -1,9 +1,27 @@
+import { lazy, Suspense, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import type { PageDefinition } from "lx_client/js/navigation/types";
 import PlaceholderPage from "lx_client/js/components/PlaceholderPage";
 import { TestPage } from "../components/TestPage";
-import { DataLoadPage } from "../pages/DataLoadPage";
-import { DashboardPage } from "../pages/DashboardPage";
+
+// Page entry points are split out of the app shell so an offline launch can
+// render navigation before a page chunk is requested.
+const LazyDashboardPage = lazy(() => import("../pages/DashboardPage"));
+const LazyDataLoadPage = lazy(() => import("../pages/DataLoadPage"));
+
+function suspense(element: ReactNode): ReactNode {
+  return (
+    <Suspense
+      fallback={
+        <div role="status" aria-live="polite" style={{ padding: 16 }}>
+          Loading…
+        </div>
+      }
+    >
+      {element}
+    </Suspense>
+  );
+}
 
 /**
  * User-facing page registry for the financial workspace.
@@ -27,7 +45,7 @@ export const PAGES: PageDefinition[] = [
     requiredPermission: "workspace:view",
     availability: "available",
     showInNavigation: true,
-    element: <DashboardPage />,
+    element: suspense(<LazyDashboardPage />),
   },
   {
     id: "data-load",
@@ -38,7 +56,7 @@ export const PAGES: PageDefinition[] = [
     requiredPermission: "workspace:view",
     availability: "available",
     showInNavigation: true,
-    element: <DataLoadPage />,
+    element: suspense(<LazyDataLoadPage />),
   },
   {
     id: "portfolios",

@@ -9,6 +9,7 @@ import {
   type SeriesApi,
 } from "../pages/dashboard/fetchDailyBars";
 import { normalizeSearchQuery, queryKeys } from "./keys";
+import { withReadProvenance } from "./provenance";
 
 const SEARCH_STALE_MS = 300_000;
 const SEARCH_GC_MS = 600_000;
@@ -30,10 +31,12 @@ export function assetSearchQueryOptions(
   limit = 20,
 ): DashboardQueryOptions<Awaited<ReturnType<typeof fetchAssetOptions>>> {
   const normalized = normalizeSearchQuery(query);
+  const queryKey = queryKeys.assets.search(normalized, limit);
   return {
-    queryKey: queryKeys.assets.search(normalized, limit),
-    queryFn: ({ signal }) =>
-      fetchAssetOptions(api, normalized, { signal, limit }),
+    queryKey,
+    queryFn: withReadProvenance(queryKey, ({ signal }, onMeta) =>
+      fetchAssetOptions(api, normalized, { signal, limit, onMeta }),
+    ),
     staleTime: SEARCH_STALE_MS,
     gcTime: SEARCH_GC_MS,
   };
@@ -45,9 +48,12 @@ export function marketSeriesQueryOptions(
   assetId: string,
   range: DateRange,
 ): DashboardQueryOptions<Awaited<ReturnType<typeof fetchDailyBars>>> {
+  const queryKey = queryKeys.marketSeries.detail(assetId, range.from, range.to);
   return {
-    queryKey: queryKeys.marketSeries.detail(assetId, range.from, range.to),
-    queryFn: ({ signal }) => fetchDailyBars(api, assetId, range, { signal }),
+    queryKey,
+    queryFn: withReadProvenance(queryKey, ({ signal }, onMeta) =>
+      fetchDailyBars(api, assetId, range, { signal, onMeta }),
+    ),
     staleTime: SERIES_STALE_MS,
     gcTime: SERIES_GC_MS,
   };

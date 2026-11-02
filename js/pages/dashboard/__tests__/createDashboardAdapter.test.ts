@@ -201,7 +201,10 @@ describe("dashboard data adapter", () => {
     ]);
     await expect(adapter.searchAssets(" Apple ", options)).resolves.toHaveLength(1);
     expect(searchAssets).toHaveBeenCalledTimes(1);
-    expect(searchAssets).toHaveBeenCalledWith("Apple", options);
+    expect(searchAssets).toHaveBeenCalledWith(
+      "Apple",
+      expect.objectContaining({ ...options, onMeta: expect.any(Function) }),
+    );
   });
 
   it("maps transport failures to DashboardDataError", async () => {

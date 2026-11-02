@@ -5,6 +5,7 @@ import {
   type DateRange,
 } from "lx_client/js/components/Dashboard/types";
 import type { FactPointWire, SeriesResponseWire } from "../../types/dashboard";
+import type { ReadMeta } from "../../offline/responseProvenance";
 import { toDataError } from "./toDataError";
 
 const PAGE_LIMIT = 5_000;
@@ -15,7 +16,7 @@ export interface SeriesApi {
   loadSeriesPage(
     assetId: string,
     params: { from: string; to: string; limit?: number; cursor?: string | null },
-    options: { signal: AbortSignal },
+    options: { signal: AbortSignal; onMeta?: (meta: ReadMeta) => void },
   ): Promise<SeriesResponseWire>;
 }
 
@@ -63,7 +64,7 @@ export async function fetchDailyBars(
   api: SeriesApi,
   assetId: string,
   range: DateRange,
-  options: { signal: AbortSignal },
+  options: { signal: AbortSignal; onMeta?: (meta: ReadMeta) => void },
 ): Promise<DailyBarSeries> {
   const seen = new Set<string>();
   const points: DailyBar[] = [];

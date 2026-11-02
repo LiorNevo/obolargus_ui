@@ -4,6 +4,10 @@ import type {
   AssetSearchResponse,
   SeriesResponseWire,
 } from "../types/dashboard";
+import {
+  readResponseMeta,
+  type ReadMeta,
+} from "../offline/responseProvenance";
 
 /** A normalized dashboard request error with a stable code. */
 export class DashboardApiError extends Error {
@@ -25,9 +29,14 @@ export class DashboardApiError extends Error {
   }
 }
 
+interface RequestOptions {
+  signal: AbortSignal;
+  onMeta?: (meta: ReadMeta) => void;
+}
+
 async function requestJson<T>(
   path: string,
-  options: { signal: AbortSignal },
+  options: RequestOptions,
 ): Promise<T> {
   let response: Response;
   try {
@@ -61,13 +70,18 @@ async function requestJson<T>(
       response.status >= 500,
     );
   }
+  options.onMeta?.(readResponseMeta(response));
   return (await response.json()) as T;
 }
 
 /** Searches assets for the instrument picker. */
 export function searchAssets(
   query: string,
-  options: { signal: AbortSignal; limit?: number },
+  options: {
+    signal: AbortSignal;
+    limit?: number;
+    onMeta?: (meta: ReadMeta) => void;
+  },
 ): Promise<AssetSearchResponse> {
   const limit = options.limit ?? 20;
   const params = new URLSearchParams({ limit: String(limit) });
@@ -79,7 +93,7 @@ export function searchAssets(
 export function loadSeriesPage(
   assetId: string,
   params: { from: string; to: string; limit?: number; cursor?: string | null },
-  options: { signal: AbortSignal },
+  options: { signal: AbortSignal; onMeta?: (meta: ReadMeta) => void },
 ): Promise<SeriesResponseWire> {
   const search = new URLSearchParams({
     from: params.from,

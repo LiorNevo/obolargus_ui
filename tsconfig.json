@@ -15,5 +15,6 @@
       "lx_client/*": ["../lx_client/*"]
     }
   },
-  "include": ["js"]
+  "include": ["js"],
+  "exclude": ["js/service-worker"]
 }

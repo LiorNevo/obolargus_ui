@@ -1,5 +1,6 @@
 import { DashboardApiError } from "../api/dashboard";
 import { DataLoadApiError } from "../api/dataLoad";
+import { isOfflineUnavailableError } from "../offline/errors";
 
 /** Reads a `retryable` flag from an error without assuming a concrete class. */
 function retryableFlag(error: unknown): boolean | undefined {
@@ -26,6 +27,7 @@ function isAbortError(error: unknown): boolean {
  */
 export function isRetryableError(error: unknown): boolean {
   if (isAbortError(error)) return false;
+  if (isOfflineUnavailableError(error)) return false;
 
   const flag = retryableFlag(error);
   if (flag !== undefined) return flag;

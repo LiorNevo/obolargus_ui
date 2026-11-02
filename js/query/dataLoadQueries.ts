@@ -10,6 +10,7 @@ import type {
   HistoryFiltersValue,
 } from "../types/dataLoad";
 import { normalizeHistoryFilters, queryKeys } from "./keys";
+import { withReadProvenance } from "./provenance";
 
 const CATALOG_STALE_MS = 60_000;
 const CATALOG_GC_MS = 600_000;
@@ -18,9 +19,12 @@ const HISTORY_GC_MS = 600_000;
 
 /** Cache options for the data-domain catalog. */
 export function domainsQueryOptions() {
+  const queryKey = queryKeys.dataLoad.domains();
   return queryOptions({
-    queryKey: queryKeys.dataLoad.domains(),
-    queryFn: ({ signal }) => fetchDomains(signal),
+    queryKey,
+    queryFn: withReadProvenance(queryKey, ({ signal }, onMeta) =>
+      fetchDomains(signal, onMeta),
+    ),
     staleTime: CATALOG_STALE_MS,
     gcTime: CATALOG_GC_MS,
   });
@@ -28,9 +32,12 @@ export function domainsQueryOptions() {
 
 /** Cache options for one domain's source catalog. */
 export function sourcesQueryOptions(domain: DataDomainId) {
+  const queryKey = queryKeys.dataLoad.sources(domain);
   return queryOptions({
-    queryKey: queryKeys.dataLoad.sources(domain),
-    queryFn: ({ signal }) => fetchSources(domain, signal),
+    queryKey,
+    queryFn: withReadProvenance(queryKey, ({ signal }, onMeta) =>
+      fetchSources(domain, signal, onMeta),
+    ),
     staleTime: CATALOG_STALE_MS,
     gcTime: CATALOG_GC_MS,
   });
@@ -42,13 +49,16 @@ export function historyQueryOptions(
   limit: number,
   offset: number,
 ) {
+  const queryKey = queryKeys.dataLoad.historyList(
+    normalizeHistoryFilters(filters),
+    limit,
+    offset,
+  );
   return queryOptions({
-    queryKey: queryKeys.dataLoad.historyList(
-      normalizeHistoryFilters(filters),
-      limit,
-      offset,
+    queryKey,
+    queryFn: withReadProvenance(queryKey, ({ signal }, onMeta) =>
+      fetchHistory(filters, limit, offset, signal, onMeta),
     ),
-    queryFn: ({ signal }) => fetchHistory(filters, limit, offset, signal),
     staleTime: HISTORY_STALE_MS,
     gcTime: HISTORY_GC_MS,
   });
@@ -56,14 +66,15 @@ export function historyQueryOptions(
 
 /** Cache options for one history entry's detail. */
 export function historyDetailQueryOptions(entryId: string | undefined) {
+  const queryKey = queryKeys.dataLoad.historyDetail(entryId ?? "");
   return queryOptions({
-    queryKey: queryKeys.dataLoad.historyDetail(entryId ?? ""),
-    queryFn: ({ signal }) => {
+    queryKey,
+    queryFn: withReadProvenance(queryKey, ({ signal }, onMeta) => {
       if (!entryId) {
         throw new Error("History detail requires an entry id.");
       }
-      return fetchHistoryDetail(entryId, signal);
-    },
+      return fetchHistoryDetail(entryId, signal, onMeta);
+    }),
     staleTime: HISTORY_STALE_MS,
     gcTime: HISTORY_GC_MS,
   });

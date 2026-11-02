@@ -15,6 +15,7 @@ import {
   invalidateAfterLoad,
   invalidateAfterSourceToggle,
 } from "./invalidation";
+import { assertOnlineForWrite } from "../offline/assertOnlineForWrite";
 
 export interface ToggleSourceVariables {
   sourceId: string;
@@ -26,14 +27,16 @@ export interface ToggleSourceVariables {
 export function useToggleSourceMutation(domain: DataDomainId) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (variables: ToggleSourceVariables) =>
-      variables.reason === undefined
+    mutationFn: (variables: ToggleSourceVariables) => {
+      assertOnlineForWrite();
+      return variables.reason === undefined
         ? toggleSource(variables.sourceId, variables.enabled)
         : toggleSource(
             variables.sourceId,
             variables.enabled,
             variables.reason,
-          ),
+          );
+    },
     retry: false,
     onSuccess: () => invalidateAfterSourceToggle(queryClient, domain),
   });
@@ -43,7 +46,10 @@ export function useToggleSourceMutation(domain: DataDomainId) {
 export function useLoadOnceMutation() {
   const queryClient = useQueryClient();
   return useMutation<LoadReport, unknown, SingleLoadRequest>({
-    mutationFn: (body) => loadOnce(body),
+    mutationFn: (body) => {
+      assertOnlineForWrite();
+      return loadOnce(body);
+    },
     retry: false,
     onSuccess: (report) => invalidateAfterLoad(queryClient, { report }),
   });
@@ -53,7 +59,10 @@ export function useLoadOnceMutation() {
 export function useLoadRangeMutation() {
   const queryClient = useQueryClient();
   return useMutation<RangeReport, unknown, RangeLoadRequest>({
-    mutationFn: (body) => loadRange(body),
+    mutationFn: (body) => {
+      assertOnlineForWrite();
+      return loadRange(body);
+    },
     retry: false,
     onSuccess: (report, variables) =>
       invalidateAfterLoad(queryClient, {

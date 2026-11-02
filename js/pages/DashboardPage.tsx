@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dashboard } from "lx_client/js/components/Dashboard";
+import { OfflineReadSummary } from "../offline/LastUpdatedLabel";
 import { createDashboardAdapter } from "./dashboard/createDashboardAdapter";
 
 /**
@@ -13,7 +14,12 @@ export function DashboardPage() {
     () => createDashboardAdapter(queryClient),
     [queryClient],
   );
-  return <Dashboard dataAdapter={dataAdapter} />;
+  return (
+    <>
+      <OfflineReadSummary />
+      <Dashboard dataAdapter={dataAdapter} />
+    </>
+  );
 }
 
 export default DashboardPage;

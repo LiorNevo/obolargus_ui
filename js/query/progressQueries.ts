@@ -1,5 +1,6 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { fetchProgress } from "../api/dataLoad";
+import { isBrowserOnline } from "../offline/errors";
 import type { RangeProgress } from "../types/dataLoad";
 import { queryKeys } from "./keys";
 
@@ -18,10 +19,12 @@ export function rangeProgressQueryOptions(groupId: string) {
     queryFn: ({ signal }) => fetchProgress(groupId, signal),
     staleTime: 0,
     gcTime: PROGRESS_GC_MS,
-    refetchInterval: (query) =>
-      TERMINAL_STATUSES.has(query.state.data?.status ?? "starting")
+    refetchInterval: (query) => {
+      if (!isBrowserOnline()) return false;
+      return TERMINAL_STATUSES.has(query.state.data?.status ?? "starting")
         ? false
-        : PROGRESS_POLL_MS,
+        : PROGRESS_POLL_MS;
+    },
     refetchIntervalInBackground: false,
   });
 }

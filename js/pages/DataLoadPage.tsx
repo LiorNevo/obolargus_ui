@@ -21,6 +21,12 @@ import type {
   SourceCatalogEntry,
 } from "../types/dataLoad";
 import { DataLoadApiError } from "../api/dataLoad";
+import {
+  OfflineUnavailableError,
+  normalizeOfflineError,
+} from "../offline/errors";
+import { LastUpdatedLabel } from "../offline/LastUpdatedLabel";
+import { useOfflineStore } from "../offline/offlineStore";
 import { useDataLoadStore } from "../store/dataLoadStore";
 import {
   useDomainsQuery,
@@ -35,6 +41,7 @@ import {
   useToggleSourceMutation,
 } from "../query/mutations";
 import { invalidateAfterProgressTerminal } from "../query/invalidation";
+import { normalizeHistoryFilters, queryKeys } from "../query/keys";
 import { IdentifierBatchInput } from "./data-load/IdentifierBatchInput";
 import { LoadForm, validateDraft } from "./data-load/LoadForm";
 import { LoadReport } from "./data-load/LoadReport";
@@ -78,8 +85,10 @@ function isRangeReport(
 }
 
 function requestMessage(error: unknown): string {
-  if (error instanceof DataLoadApiError) return error.message;
-  if (error instanceof Error) return error.message;
+  const normalized = normalizeOfflineError(error);
+  if (normalized instanceof OfflineUnavailableError) return normalized.message;
+  if (normalized instanceof DataLoadApiError) return normalized.message;
+  if (normalized instanceof Error) return normalized.message;
   return "The request failed.";
 }
 
@@ -189,6 +198,18 @@ export function DataLoadPage() {
   const detailEntryId = filters.selected ?? restoredDetailId ?? undefined;
   const detailQuery = useHistoryDetailQuery(detailEntryId);
   const progressQuery = useRangeProgressQuery(inFlightRange?.groupId ?? null);
+  const online = useOfflineStore((state) => state.status.state === "online");
+  const historyOffset = (historyPageNumber - 1) * 50;
+  const historyKey = useMemo(
+    () =>
+      queryKeys.dataLoad.historyList(
+        normalizeHistoryFilters(filters),
+        50,
+        historyOffset,
+      ),
+    [filters, historyOffset],
+  );
+  const detailKey = queryKeys.dataLoad.historyDetail(detailEntryId ?? "");
 
   const loadOnceMutation = useLoadOnceMutation();
   const loadRangeMutation = useLoadRangeMutation();
@@ -450,11 +471,16 @@ export function DataLoadPage() {
           Every run is recorded in the system of record.
         </p>
       </header>
+      <div className="obolargus_read_status_row">
+        <LastUpdatedLabel queryKey={queryKeys.dataLoad.domains()} />
+        <LastUpdatedLabel queryKey={queryKeys.dataLoad.sources(domain)} />
+      </div>
       <div className="obolargus_status_region" aria-live="polite" role="status">
         {running ? `Loading… ${elapsed}s` : null}
         {progress
           ? ` Date ${progress.dates_completed} of ${progress.dates_requested ?? "?"}.`
           : null}
+        {progress && !online ? " Last known progress — not live." : null}
         {isBackgroundRefresh ? " Refreshing data…" : null}
         {returnNotice}
         {sourceMessage}
@@ -525,6 +551,7 @@ export function DataLoadPage() {
           onChange={updateFilters}
           onClear={handleClearFilters}
         />
+        <LastUpdatedLabel queryKey={historyKey} />
         <HistoryPanel
           page={historyPage}
           filters={filters}
@@ -549,6 +576,7 @@ export function DataLoadPage() {
         )}
         {detail && (
           <div className="obolargus_history_detail">
+            <LastUpdatedLabel queryKey={detailKey} />
             <HistoryDetail detail={detail} />
             <div className="obolargus_form_actions">
               <Button

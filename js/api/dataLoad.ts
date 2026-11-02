@@ -9,6 +9,10 @@ import type {
   RangeReport,
   SourceCatalogResponse,
 } from "../types/dataLoad";
+import {
+  readResponseMeta,
+  type ReadMeta,
+} from "../offline/responseProvenance";
 
 /** A normalized request error with a stable code. */
 export class DataLoadApiError extends Error {
@@ -27,15 +31,19 @@ interface ErrorEnvelope {
   error?: { code?: string; message?: string };
 }
 
+type MetaCallback = (meta: ReadMeta) => void;
+
 async function request<T>(
   path: string,
   init?: Parameters<typeof fetch>[1],
+  onMeta?: MetaCallback,
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
     ...init,
   });
   if (response.ok) {
+    onMeta?.(readResponseMeta(response));
     return (await response.json()) as T;
   }
   const text = await response.text();
@@ -52,17 +60,25 @@ async function request<T>(
 }
 
 /** Loads the declared data domains. */
-export function fetchDomains(signal?: AbortSignal): Promise<DomainCatalog> {
-  return request<DomainCatalog>("/data-load/domains", { signal });
+export function fetchDomains(
+  signal?: AbortSignal,
+  onMeta?: MetaCallback,
+): Promise<DomainCatalog> {
+  return request<DomainCatalog>("/data-load/domains", { signal }, onMeta);
 }
 
 /** Loads the configured source catalog, optionally for one domain. */
 export function fetchSources(
   domain?: string,
   signal?: AbortSignal,
+  onMeta?: MetaCallback,
 ): Promise<SourceCatalogResponse> {
   const query = domain ? `?domain=${encodeURIComponent(domain)}` : "";
-  return request<SourceCatalogResponse>(`/data-load/sources${query}`, { signal });
+  return request<SourceCatalogResponse>(
+    `/data-load/sources${query}`,
+    { signal },
+    onMeta,
+  );
 }
 
 /** Enables or disables one configured source. */
@@ -141,20 +157,26 @@ export function fetchHistory(
   limit = 50,
   offset = 0,
   signal?: AbortSignal,
+  onMeta?: MetaCallback,
 ): Promise<HistoryPage> {
-  return request<HistoryPage>(`/data-load/history?${historyQuery(filters, limit, offset)}`, {
-    signal,
-  });
+  return request<HistoryPage>(
+    `/data-load/history?${historyQuery(filters, limit, offset)}`,
+    { signal },
+    onMeta,
+  );
 }
 
 /** Loads one history entry's full detail. */
 export function fetchHistoryDetail(
   entryId: string,
   signal?: AbortSignal,
+  onMeta?: MetaCallback,
 ): Promise<HistoryDetail> {
-  return request<HistoryDetail>(`/data-load/history/${encodeURIComponent(entryId)}`, {
-    signal,
-  });
+  return request<HistoryDetail>(
+    `/data-load/history/${encodeURIComponent(entryId)}`,
+    { signal },
+    onMeta,
+  );
 }
 
 /** Loads a range group's progress. */

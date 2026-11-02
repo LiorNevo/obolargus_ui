@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { RouterProvider } from "react-router-dom";
-import ThemeProvider from "lx_client/js/components/ThemeProvider";
 import type { AppRouter } from "lx_client/js/navigation/routes";
+import { AppThemeProvider } from "./theme/AppThemeProvider";
 import { getAppRouter } from "./router";
 import { createQueryClient } from "./query/client";
+import { OfflineProvider } from "./offline/OfflineProvider";
 import "./styles/app.css";
 
 /** Props for the routed application shell. */
@@ -31,14 +32,16 @@ export function App({ router, queryClient }: AppProps = {}) {
 
   return (
     <QueryClientProvider client={activeQueryClient}>
-      <ThemeProvider>
-        <div
-          className="lx_client_app_container"
-          style={{ width: "100%", height: "100%" }}
-        >
-          <RouterProvider router={activeRouter} />
-        </div>
-      </ThemeProvider>
+      <AppThemeProvider>
+        <OfflineProvider>
+          <div
+            className="lx_client_app_container"
+            style={{ width: "100%", height: "100%" }}
+          >
+            <RouterProvider router={activeRouter} />
+          </div>
+        </OfflineProvider>
+      </AppThemeProvider>
     </QueryClientProvider>
   );
 }

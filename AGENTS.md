@@ -52,6 +52,38 @@ Operational rules for contributors and AI agents working in this app.
   freshness policy, add invalidation if a mutation affects it, and update
   `specs/architecture/architecture.md` when the ownership boundary changes.
 
+## Offline and PWA
+
+- Offline support is read-only. Writes call `assertOnlineForWrite()` in
+  `js/query/mutations.ts`; never add a background-sync or mutation queue.
+- Cache policy is defined once in `js/offline/cachePolicy.ts`. The service
+  worker (`js/service-worker/service-worker.ts`) consumes it; do not duplicate
+  request/response rules in the worker or a page.
+- Runtime caches are bounded (`api`: 100 entries / 24 h, `static`: 60 / 30 d)
+  and scoped by origin, base path, and build id. Never use a stable,
+  unversioned cache name.
+- Server response bodies belong only in Cache Storage. Do not copy them into
+  Zustand, IndexedDB, localStorage, or sessionStorage. Connectivity, provenance,
+  and update state use the memory-only `js/offline/offlineStore.ts`.
+- The worker never calls `clientsClaim()` and never calls `skipWaiting()` at
+  install. Activation is confirmation-based and coordinated across tabs; keep
+  the previous precache until every announced tab reloads or closes.
+- The production worker is registered only in production and only when
+  `navigator.serviceWorker` exists in a secure context. Development, Storybook,
+  and the docs runner must not register it.
+- lx_client's compiled theme CSS is emitted as `theme-registry.css` by
+  `scripts/theme-css.js` and linked from `index.html`. The app uses
+  `js/theme/AppThemeProvider.tsx`; do not import the JS theme registry into the
+  main entrypoint, or the initial bundle grows by ~400 KiB.
+- Production aliases `tslog` to `js/shims/tslog.ts` and uses react-router's
+  production bundle. Keep the shim's six log-level methods compatible with
+  lx_client's logger.
+- Material Symbols is subset to the icon names listed in
+  `scripts/subset-icons.mjs` and served from
+  `js/styles/fonts/material-symbols-outlined-subset.woff2`. Add the name to that
+  list and run `pnpm subset:icons` whenever a new icon is introduced; the build
+  verification rejects an unsubset font.
+
 ## Contract notes
 
 - Health-check wiring follows `contracts/health-check.md`;
@@ -61,7 +93,10 @@ Operational rules for contributors and AI agents working in this app.
 
 ## Commands
 
-- Test: `pnpm test`
+- Test: `pnpm test` (coverage: `pnpm test --coverage`)
 - Lint: `pnpm lint`
-- Build: `pnpm build`
+- Typecheck: `pnpm typecheck` and `pnpm typecheck:sw`
+- Build: `pnpm build` (production; performance budgets apply here)
+- Verify PWA output: `pnpm verify:pwa`
+- Serve the production build locally: `pnpm serve:prod`
 - Storybook: `pnpm storybook`

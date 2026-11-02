@@ -38,6 +38,9 @@ export default [
     },
     rules: {
       "no-unused-vars": "off",
+      // TypeScript resolves identifiers and ambient worker types; the base
+      // no-undef rule cannot see type-only or lib-provided globals.
+      "no-undef": "off",
     },
   },
 ];

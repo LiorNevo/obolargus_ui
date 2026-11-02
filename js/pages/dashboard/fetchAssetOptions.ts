@@ -1,12 +1,17 @@
 import type { AssetOption } from "lx_client/js/components/Dashboard/types";
 import type { AssetSearchResponse } from "../../types/dashboard";
+import type { ReadMeta } from "../../offline/responseProvenance";
 import { toDataError } from "./toDataError";
 
 /** The asset-search transport used by the dashboard adapter. */
 export interface AssetSearchApi {
   searchAssets(
     query: string,
-    options: { signal: AbortSignal; limit?: number },
+    options: {
+      signal: AbortSignal;
+      limit?: number;
+      onMeta?: (meta: ReadMeta) => void;
+    },
   ): Promise<AssetSearchResponse>;
 }
 
@@ -14,7 +19,11 @@ export interface AssetSearchApi {
 export async function fetchAssetOptions(
   api: AssetSearchApi,
   query: string,
-  options: { signal: AbortSignal; limit: number },
+  options: {
+    signal: AbortSignal;
+    limit: number;
+    onMeta?: (meta: ReadMeta) => void;
+  },
 ): Promise<AssetOption[]> {
   try {
     const response = await api.searchAssets(query, options);

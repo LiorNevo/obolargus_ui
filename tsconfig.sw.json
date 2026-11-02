@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2021", "WebWorker"],
+    "strict": true,
+    "noEmit": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": [],
+    "paths": {
+      "lx_client/*": ["../lx_client/*"]
+    }
+  },
+  "include": [
+    "js/service-worker/**/*.ts",
+    "js/service-worker/**/*.d.ts",
+    "js/offline/constants.ts",
+    "js/offline/paths.ts",
+    "js/offline/cachePolicy.ts"
+  ],
+  "exclude": ["js/service-worker/__tests__/**"]
+}

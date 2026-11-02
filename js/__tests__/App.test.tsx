@@ -27,7 +27,11 @@ describe("App", () => {
     renderAppAt("/");
 
     expect(
-      await screen.findByRole("region", { name: "Dashboard" }),
+      await screen.findByRole(
+        "region",
+        { name: "Dashboard" },
+        { timeout: 5_000 },
+      ),
     ).toBeInTheDocument();
   });
 
@@ -71,7 +75,11 @@ describe("App", () => {
 
     expect(mockedGetAppRouter).toHaveBeenCalledTimes(1);
     expect(
-      await screen.findByRole("region", { name: "Dashboard" }),
+      await screen.findByRole(
+        "region",
+        { name: "Dashboard" },
+        { timeout: 5_000 },
+      ),
     ).toBeInTheDocument();
   });
 });

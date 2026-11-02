@@ -111,6 +111,7 @@ describe("data load query hooks", () => {
       2,
       "holdings",
       expect.any(AbortSignal),
+      expect.any(Function),
     );
   });
 
@@ -132,6 +133,7 @@ describe("data load query hooks", () => {
       50,
       50,
       expect.any(AbortSignal),
+      expect.any(Function),
     );
   });
 
@@ -151,6 +153,7 @@ describe("data load query hooks", () => {
       expect(mocked.fetchHistoryDetail).toHaveBeenCalledWith(
         "entry-1",
         expect.any(AbortSignal),
+        expect.any(Function),
       ),
     );
   });

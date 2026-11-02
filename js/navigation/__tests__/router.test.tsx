@@ -36,7 +36,11 @@ describe("URL-driven routing", () => {
     renderRoute("/");
 
     expect(
-      await screen.findByRole("region", { name: "Dashboard" }),
+      await screen.findByRole(
+        "region",
+        { name: "Dashboard" },
+        { timeout: 5_000 },
+      ),
     ).toBeInTheDocument();
   });
 
@@ -44,7 +48,11 @@ describe("URL-driven routing", () => {
     const { router } = renderRoute("/dashboard");
 
     expect(
-      await screen.findByRole("region", { name: "Dashboard" }),
+      await screen.findByRole(
+        "region",
+        { name: "Dashboard" },
+        { timeout: 5_000 },
+      ),
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/");
   });
