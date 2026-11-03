@@ -229,22 +229,6 @@
   background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
-.obolargus_data_load_page .obolargus_history_filters {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--space-3);
-}
-
-.obolargus_history_filters .obolargus_form_field {
-  flex: 1 1 12rem;
-}
-
-.obolargus_history_filters .obolargus_form_actions {
-  flex: 0 0 auto;
-}
-
 .obolargus_history_panel nav[aria-label="History pages"] {
   display: flex;
   flex-wrap: wrap;
@@ -252,11 +236,17 @@
   gap: var(--space-2);
 }
 
-.obolargus_history_detail {
+.obolargus_history_detail,
+.obolargus_history_range_detail {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   min-width: 0;
+}
+
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .obolargus_report_panel {
@@ -328,9 +318,5 @@
 @media (max-width: 767px) {
   .obolargus_panel {
     padding: var(--space-2);
-  }
-
-  .obolargus_history_filters .obolargus_form_field {
-    flex-basis: 100%;
   }
 }

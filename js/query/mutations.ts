@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   loadOnce,
   loadRange,
+  startLoadRange,
+  stopLoadRange,
   toggleSource,
   type RangeLoadRequest,
   type SingleLoadRequest,
@@ -9,12 +11,15 @@ import {
 import type {
   DataDomainId,
   LoadReport,
+  RangeLoadAccepted,
   RangeReport,
+  StopRangeResult,
 } from "../types/dataLoad";
 import {
   invalidateAfterLoad,
   invalidateAfterSourceToggle,
 } from "./invalidation";
+import { queryKeys } from "./keys";
 import { assertOnlineForWrite } from "../offline/assertOnlineForWrite";
 
 export interface ToggleSourceVariables {
@@ -69,5 +74,47 @@ export function useLoadRangeMutation() {
         report,
         groupId: variables.client_group_id,
       }),
+  });
+}
+
+/**
+ * Starts one date-range load in the background.
+ *
+ * The POST returns as soon as the server accepts it; completion is observed by
+ * the range-progress poll and the history detail read.
+ */
+export function useStartRangeLoadMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<RangeLoadAccepted, unknown, RangeLoadRequest>({
+    mutationFn: (body) => {
+      assertOnlineForWrite();
+      return startLoadRange(body);
+    },
+    retry: false,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.dataLoad.allHistory(),
+      });
+    },
+  });
+}
+
+/** Requests cancellation of a running range load. */
+export function useStopRangeLoadMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<StopRangeResult, unknown, string>({
+    mutationFn: (groupId) => {
+      assertOnlineForWrite();
+      return stopLoadRange(groupId);
+    },
+    retry: false,
+    onSuccess: (_result, groupId) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.dataLoad.allHistory(),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.dataLoad.progress(groupId),
+      });
+    },
   });
 }

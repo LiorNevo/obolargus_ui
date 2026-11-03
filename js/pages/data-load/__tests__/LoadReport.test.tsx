@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { tableStore } from "lx_client/js/components/Table";
 import type { IdentifierOutcome, LoadReport as LoadReportType } from "../../../types/dataLoad";
 import { LoadReport, outcomeLabel } from "../LoadReport";
 
@@ -65,6 +66,8 @@ function report(overrides: Partial<LoadReportType> = {}): LoadReportType {
 }
 
 describe("LoadReport", () => {
+  beforeEach(() => tableStore.getState().resetAll());
+
   it("shows stored provenance and does not raise a failure banner for absence", () => {
     render(<LoadReport report={report()} />);
     expect(screen.getByText(/As of 2026-10-01/)).toBeInTheDocument();

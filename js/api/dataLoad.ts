@@ -5,9 +5,11 @@ import type {
   HistoryFiltersValue,
   HistoryPage,
   LoadReport,
+  RangeLoadAccepted,
   RangeProgress,
   RangeReport,
   SourceCatalogResponse,
+  StopRangeResult,
 } from "../types/dataLoad";
 import {
   readResponseMeta,
@@ -126,12 +128,29 @@ export interface RangeLoadRequest {
   client_group_id: string;
 }
 
-/** Runs a date-range load. */
+/** Runs a date-range load and waits for its report. */
 export function loadRange(
   body: RangeLoadRequest,
   signal?: AbortSignal,
 ): Promise<RangeReport> {
   return request<RangeReport>("/market-data/load-range", {
+    method: "POST",
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
+/**
+ * Starts a date-range load and returns as soon as the server accepts it.
+ *
+ * Completion is observed through the range-progress endpoint; the final
+ * report is read from the history detail endpoint.
+ */
+export function startLoadRange(
+  body: RangeLoadRequest,
+  signal?: AbortSignal,
+): Promise<RangeLoadAccepted> {
+  return request<RangeLoadAccepted>("/market-data/load-range/async", {
     method: "POST",
     body: JSON.stringify(body),
     signal,
@@ -176,6 +195,17 @@ export function fetchHistoryDetail(
     `/data-load/history/${encodeURIComponent(entryId)}`,
     { signal },
     onMeta,
+  );
+}
+
+/** Requests cooperative cancellation of a running range load. */
+export function stopLoadRange(
+  groupId: string,
+  signal?: AbortSignal,
+): Promise<StopRangeResult> {
+  return request<StopRangeResult>(
+    `/data-load/history/groups/${encodeURIComponent(groupId)}/stop`,
+    { method: "POST", signal },
   );
 }
 

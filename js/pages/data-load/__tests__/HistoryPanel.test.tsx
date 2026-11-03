@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { tableStore } from "lx_client/js/components/Table";
 import { HistoryPanel } from "../HistoryPanel";
 import type { HistoryEntry, HistoryPage } from "../../../types/dataLoad";
 
@@ -66,37 +67,34 @@ const PAGE: HistoryPage = {
   offset: 0,
 };
 
+function renderPanel(
+  overrides: Partial<React.ComponentProps<typeof HistoryPanel>> = {},
+) {
+  return render(
+    <HistoryPanel
+      page={PAGE}
+      filters={{ page: 1 }}
+      loading={false}
+      error={null}
+      onSelect={() => undefined}
+      onPage={() => undefined}
+      onRefresh={() => undefined}
+      {...overrides}
+    />,
+  );
+}
+
 describe("HistoryPanel", () => {
+  beforeEach(() => tableStore.getState().resetAll());
+
   it("renders a spinner and skeleton rows while the first page loads", () => {
-    const { container } = render(
-      <HistoryPanel
-        page={null}
-        filters={{ page: 1 }}
-        loading
-        error={null}
-        onSelect={() => undefined}
-        onPage={() => undefined}
-        onRefresh={() => undefined}
-        onClearFilters={() => undefined}
-      />,
-    );
+    const { container } = renderPanel({ page: null, loading: true });
     expect(screen.getByText("Loading history...")).toBeInTheDocument();
     expect(container.querySelectorAll(".lx-table-skeleton-row")).toHaveLength(6);
   });
 
   it("lists runs and changes with running/stale labels", () => {
-    render(
-      <HistoryPanel
-        page={PAGE}
-        filters={{ page: 1 }}
-        loading={false}
-        error={null}
-        onSelect={() => undefined}
-        onPage={() => undefined}
-        onRefresh={() => undefined}
-        onClearFilters={() => undefined}
-      />,
-    );
+    renderPanel();
     expect(screen.getByText("3 entries")).toBeInTheDocument();
     expect(screen.getByText("Configuration change")).toBeInTheDocument();
     expect(screen.getByText("Incomplete / interrupted")).toBeInTheDocument();
@@ -105,36 +103,42 @@ describe("HistoryPanel", () => {
   it("opens an entry", async () => {
     const user = userEvent.setup();
     const onSelect = jest.fn();
-    render(
-      <HistoryPanel
-        page={PAGE}
-        filters={{ page: 1 }}
-        loading={false}
-        error={null}
-        onSelect={onSelect}
-        onPage={() => undefined}
-        onRefresh={() => undefined}
-        onClearFilters={() => undefined}
-      />,
-    );
+    renderPanel({ onSelect });
     await user.click(screen.getAllByRole("button", { name: "Open" })[0]);
     expect(onSelect).toHaveBeenCalledWith("entry-1");
   });
 
-  it("distinguishes empty from a fetch error", () => {
-    const { rerender } = render(
-      <HistoryPanel
-        page={{ entries: [], total: 0, limit: 50, offset: 0 }}
-        filters={{ page: 1 }}
-        loading={false}
-        error={null}
-        onSelect={() => undefined}
-        onPage={() => undefined}
-        onRefresh={() => undefined}
-        onClearFilters={() => undefined}
-      />,
+  it("filters history rows from a column header", async () => {
+    const user = userEvent.setup();
+    const { container } = renderPanel();
+    const table = within(container.querySelector(".lx-table") as HTMLElement);
+
+    await user.click(table.getByRole("button", { name: "Filter Type" }));
+    await user.click(screen.getByRole("button", { name: "None" }));
+    await user.click(
+      screen.getByRole("checkbox", { name: /Configuration change/ }),
     );
-    expect(screen.getByText("No entries match these filters.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Done" }));
+
+    expect(table.queryByText("Load run")).not.toBeInTheDocument();
+    expect(table.getByText("Configuration change")).toBeInTheDocument();
+    expect(
+      table.getByLabelText("Filter active"),
+    ).toBeInTheDocument();
+  });
+
+  it("offers row grouping", () => {
+    renderPanel();
+    expect(
+      screen.getByRole("group", { name: "Row groupings" }),
+    ).toBeInTheDocument();
+  });
+
+  it("distinguishes empty from a fetch error", () => {
+    const { rerender } = renderPanel({
+      page: { entries: [], total: 0, limit: 50, offset: 0 },
+    });
+    expect(screen.getByText("No entries match this page.")).toBeInTheDocument();
 
     rerender(
       <HistoryPanel
@@ -145,43 +149,19 @@ describe("HistoryPanel", () => {
         onSelect={() => undefined}
         onPage={() => undefined}
         onRefresh={() => undefined}
-        onClearFilters={() => undefined}
       />,
     );
     expect(screen.getByRole("alert")).toHaveTextContent("History could not be fetched");
   });
 
   it("shows a non-blocking refresh state without replacing rows", () => {
-    render(
-      <HistoryPanel
-        page={PAGE}
-        filters={{ page: 1 }}
-        loading={false}
-        refreshing
-        error={null}
-        onSelect={() => undefined}
-        onPage={() => undefined}
-        onRefresh={() => undefined}
-        onClearFilters={() => undefined}
-      />,
-    );
+    renderPanel({ refreshing: true });
     expect(screen.getByRole("status")).toHaveTextContent("Refreshing history");
     expect(screen.getByText("3 entries")).toBeInTheDocument();
   });
 
   it("keeps cached rows visible when a refresh fails", () => {
-    render(
-      <HistoryPanel
-        page={PAGE}
-        filters={{ page: 1 }}
-        loading={false}
-        error="offline"
-        onSelect={() => undefined}
-        onPage={() => undefined}
-        onRefresh={() => undefined}
-        onClearFilters={() => undefined}
-      />,
-    );
+    renderPanel({ error: "offline" });
     expect(screen.getByRole("alert")).toHaveTextContent("offline");
     expect(screen.getByText("3 entries")).toBeInTheDocument();
   });

@@ -36,7 +36,6 @@ body,
   background: var(--surface, #16233a);
   color: var(--fg, #e6edf7);
   font-size: 12px;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
 }
 
 .obolargus_offline_status[data-state="offline"] {
@@ -58,7 +57,6 @@ body,
   background: var(--surface, #16233a);
   color: var(--fg, #e6edf7);
   font-size: 12px;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
 }
 
 .obolargus_read_status {

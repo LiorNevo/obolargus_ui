@@ -57,6 +57,8 @@ jest.mock("../../api/dataLoad", () => {
     toggleSource: jest.fn(),
     loadOnce: jest.fn(),
     loadRange: jest.fn(),
+    startLoadRange: jest.fn(),
+    stopLoadRange: jest.fn(),
   };
 });
 

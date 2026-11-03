@@ -21,6 +21,8 @@ jest.mock("../../api/dataLoad", () => {
     toggleSource: jest.fn(),
     loadOnce: jest.fn(),
     loadRange: jest.fn(),
+    startLoadRange: jest.fn(),
+    stopLoadRange: jest.fn(),
   };
 });
 
@@ -112,9 +114,9 @@ function historyEntry(overrides: Partial<HistoryEntry> = {}): HistoryEntry {
   };
 }
 
-function renderPage() {
+function renderPage(initialEntry = "/data-load") {
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <MemoryRouter initialEntries={["/data-load"]}>{children}</MemoryRouter>
+    <MemoryRouter initialEntries={[initialEntry]}>{children}</MemoryRouter>
   );
   return renderWithQueryClient(<DataLoadPage />, { wrapper });
 }
@@ -169,40 +171,11 @@ beforeEach(() => {
     updated_at: "2026-10-01T00:00:01Z",
   });
   mocked.loadOnce.mockResolvedValue(REPORT);
-  mocked.loadRange.mockResolvedValue({
-    report_version: 1,
-    data_domain: "market_data",
-    range_group_id: "group-1",
-    from: "2026-10-01",
-    to: "2026-10-02",
-    concurrency: 4,
-    status: "complete",
-    dates_requested: 2,
-    dates_with_loads: 2,
-    dates_with_nothing_stored: 0,
-    totals: {
-      identifiers_attempted: 2,
-      loaded: 2,
-      no_op: 0,
-      not_resolved: 0,
-      no_data_for_date: 0,
-      unsupported_scheme: 0,
-      rejected: 0,
-      source_unavailable: 0,
-      rate_limited: 0,
-      storage_failure: 0,
-      assets_created: 0,
-      assets_adopted: 0,
-    },
-    run_ids: ["run-1", "run-2"],
-    dates: [
-      { date: "2026-10-01", report: REPORT },
-      { date: "2026-10-02", report: { ...REPORT, as_of_date: "2026-10-02" } },
-    ],
-    started_at: "2026-10-01T00:00:00Z",
-    ended_at: "2026-10-01T00:00:02Z",
-    duration_ms: 2000,
+  mocked.startLoadRange.mockResolvedValue({
+    group_id: "group-1",
+    status: "accepted",
   });
+  mocked.stopLoadRange.mockResolvedValue({ stopped: true });
 });
 
 afterEach(async () => {
@@ -301,13 +274,115 @@ describe("DataLoadPage", () => {
     });
     renderPage();
     await user.click(screen.getByRole("button", { name: "Load" }));
-    await waitFor(() => expect(mocked.loadRange).toHaveBeenCalledTimes(1));
-    const body = mocked.loadRange.mock.calls[0][0];
+    await waitFor(() =>
+      expect(mocked.startLoadRange).toHaveBeenCalledTimes(1),
+    );
+    const body = mocked.startLoadRange.mock.calls[0][0];
     expect(body.client_group_id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
     expect(body.data_domain).toBe("market_data");
-    expect(await screen.findByRole("region", { name: "Range report" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Run monitor" }),
+    ).toBeInTheDocument();
+  });
+
+  it("stops an in-flight range from the run monitor", async () => {
+    const user = userEvent.setup();
+    useDataLoadStore.getState().setDraft({
+      mode: "range",
+      from: "2026-10-01",
+      to: "2026-10-02",
+      identifierText: "TICKER:XNAS:AAPL",
+      identifiers: [{ scheme: "TICKER:XNAS", value: "AAPL" }],
+    });
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Load" }));
+    expect(
+      await screen.findByRole("heading", { name: "Run monitor" }),
+    ).toBeInTheDocument();
+
+    const groupId =
+      mocked.startLoadRange.mock.calls[0][0].client_group_id;
+    await user.click(screen.getByRole("button", { name: "Stop run" }));
+
+    await waitFor(() =>
+      expect(mocked.stopLoadRange).toHaveBeenCalledWith(groupId),
+    );
+    expect(
+      screen.queryByRole("heading", { name: "Run monitor" }),
+    ).not.toBeInTheDocument();
+    expect(useDataLoadStore.getState().inFlightRange).toBeNull();
+  });
+
+  it("loads a completed background range report after polling settles", async () => {
+    const user = userEvent.setup();
+    mocked.fetchProgress.mockResolvedValue({
+      group_id: "group-1",
+      status: "complete",
+      dates_requested: 2,
+      dates_completed: 2,
+      dates_failed: 0,
+      dates_with_loads: 2,
+      started_at: "2026-10-01T00:00:00Z",
+      updated_at: "2026-10-01T00:00:02Z",
+    });
+    mocked.fetchHistoryDetail.mockResolvedValue({
+      entry: historyEntry({
+        entry_id: "group-1",
+        entry_type: "range_run",
+        date_from: "2026-10-01",
+        date_to: "2026-10-02",
+        dates_requested: 2,
+        dates_completed: 2,
+        dates_with_loads: 2,
+        range_concurrency: 4,
+      }),
+      load: null,
+      range: {
+        from: "2026-10-01",
+        to: "2026-10-02",
+        concurrency: 4,
+        status: "complete",
+        dates_requested: 2,
+        dates_completed: 2,
+        dates_with_loads: 2,
+        dates_with_nothing_stored: 0,
+        totals: {
+          identifiers_attempted: 2,
+          loaded: 2,
+          no_op: 0,
+          not_resolved: 0,
+          no_data_for_date: 0,
+          unsupported_scheme: 0,
+          rejected: 0,
+          source_unavailable: 0,
+          rate_limited: 0,
+          storage_failure: 0,
+          assets_created: 0,
+          assets_adopted: 0,
+        },
+        dates: [
+          { date: "2026-10-01", report: REPORT },
+          { date: "2026-10-02", report: { ...REPORT, as_of_date: "2026-10-02" } },
+        ],
+      },
+      source_change: null,
+    });
+    useDataLoadStore.getState().setDraft({
+      mode: "range",
+      from: "2026-10-01",
+      to: "2026-10-02",
+      identifierText: "TICKER:XNAS:AAPL",
+      identifiers: [{ scheme: "TICKER:XNAS", value: "AAPL" }],
+    });
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Load" }));
+
+    expect(
+      await screen.findByRole("region", { name: "Range report" }),
+    ).toBeInTheDocument();
+    expect(useDataLoadStore.getState().inFlightRange).toBeNull();
   });
 
   it("reports a failed source toggle without changing the catalog", async () => {
@@ -432,8 +507,45 @@ describe("DataLoadPage", () => {
     });
     renderPage();
     await user.click(await screen.findByRole("button", { name: "Open" }));
-    expect(await screen.findByRole("heading", { name: "History detail" })).toBeInTheDocument();
-    expect(screen.getAllByRole("region", { name: "Load report" }).length).toBeGreaterThan(0);
+    await waitFor(() =>
+      expect(mocked.fetchHistoryDetail).toHaveBeenCalledWith(
+        "entry-1",
+        expect.any(AbortSignal),
+        expect.any(Function),
+      ),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "History detail" }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/As of 2026-10-01/)).toBeInTheDocument();
+  });
+
+  it("opens a history entry from the selected URL", async () => {
+    mocked.fetchHistory.mockResolvedValue({
+      entries: [historyEntry()],
+      total: 1,
+      limit: 50,
+      offset: 0,
+    });
+    mocked.fetchHistoryDetail.mockResolvedValue({
+      entry: historyEntry(),
+      load: { report: REPORT },
+      range: null,
+      source_change: null,
+    });
+    renderPage("/data-load?selected=entry-1");
+
+    await waitFor(() =>
+      expect(mocked.fetchHistoryDetail).toHaveBeenCalledWith(
+        "entry-1",
+        expect.any(AbortSignal),
+        expect.any(Function),
+      ),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "History detail" }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/As of 2026-10-01/)).toBeInTheDocument();
   });
 
   it("shows the return notice for a persisted in-flight range", async () => {
@@ -462,15 +574,13 @@ describe("DataLoadPage", () => {
 
 
 describe("DataLoadPage continuations", () => {
-  it("refreshes and clears history without losing the page", async () => {
+  it("refreshes history without losing the page", async () => {
     const user = userEvent.setup();
     renderPage();
     const history = await screen.findByRole("region", { name: "History" });
     const before = mocked.fetchHistory.mock.calls.length;
     await user.click(within(history).getByRole("button", { name: "Refresh" }));
     await waitFor(() => expect(mocked.fetchHistory.mock.calls.length).toBeGreaterThan(before));
-    await user.click(within(history).getByRole("button", { name: "Clear filters" }));
-    expect(mocked.fetchHistory).toHaveBeenCalled();
   });
 
   it("resets after confirmation", async () => {
@@ -532,7 +642,9 @@ describe("DataLoadPage continuations", () => {
     mocked.fetchHistoryDetail.mockRejectedValueOnce(new Error("detail offline"));
     renderPage();
     await user.click(await screen.findByRole("button", { name: "Open" }));
-    expect(await screen.findByText(/History detail failed: detail offline/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/History detail failed: detail offline/),
+    ).toBeInTheDocument();
   });
 
   it("shows a completed in-flight range on return", async () => {
@@ -604,7 +716,7 @@ describe("DataLoadPage accessibility", () => {
     const { container } = renderPage();
     await screen.findByRole("heading", { name: "Sources" });
     await screen.findAllByText("Yahoo Finance");
-    await screen.findByText("No entries match these filters.");
+    await screen.findByText("No entries match this page.");
     await waitFor(() => expect(mocked.fetchDomains).toHaveBeenCalled());
     let results;
     await act(async () => {

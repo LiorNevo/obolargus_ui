@@ -29,6 +29,7 @@ import { LastUpdatedLabel } from "../offline/LastUpdatedLabel";
 import { useOfflineStore } from "../offline/offlineStore";
 import { useDataLoadStore } from "../store/dataLoadStore";
 import {
+  historyDetailQueryOptions,
   useDomainsQuery,
   useHistoryDetailQuery,
   useHistoryQuery,
@@ -37,19 +38,23 @@ import {
 import { useRangeProgressQuery } from "../query/progressQueries";
 import {
   useLoadOnceMutation,
-  useLoadRangeMutation,
+  useStartRangeLoadMutation,
+  useStopRangeLoadMutation,
   useToggleSourceMutation,
 } from "../query/mutations";
-import { invalidateAfterProgressTerminal } from "../query/invalidation";
+import {
+  invalidateAfterLoad,
+  invalidateAfterProgressTerminal,
+} from "../query/invalidation";
 import { normalizeHistoryFilters, queryKeys } from "../query/keys";
 import { IdentifierBatchInput } from "./data-load/IdentifierBatchInput";
 import { LoadForm, validateDraft } from "./data-load/LoadForm";
 import { LoadReport } from "./data-load/LoadReport";
 import { RangeReport } from "./data-load/RangeReport";
 import { SourceCatalog } from "./data-load/SourceCatalog";
-import { HistoryFilters } from "./data-load/HistoryFilters";
 import { HistoryPanel } from "./data-load/HistoryPanel";
 import { HistoryDetail } from "./data-load/HistoryDetail";
+import { rangeReportFromDetail } from "./data-load/reportFromDetail";
 import "./data-load/data-load.css";
 
 const FALLBACK_DOMAINS: DomainEntry[] = [
@@ -209,10 +214,9 @@ export function DataLoadPage() {
       ),
     [filters, historyOffset],
   );
-  const detailKey = queryKeys.dataLoad.historyDetail(detailEntryId ?? "");
-
   const loadOnceMutation = useLoadOnceMutation();
-  const loadRangeMutation = useLoadRangeMutation();
+  const startRangeLoadMutation = useStartRangeLoadMutation();
+  const stopRangeLoadMutation = useStopRangeLoadMutation();
   const toggleSourceMutation = useToggleSourceMutation(domain);
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
@@ -222,6 +226,7 @@ export function DataLoadPage() {
   const [busySourceId, setBusySourceId] = useState<string | null>(null);
   const [sourceMessage, setSourceMessage] = useState<string | null>(null);
   const [returnNotice, setReturnNotice] = useState<string | null>(null);
+  const [stopping, setStopping] = useState(false);
   const restoredNoticeRef = useRef(false);
   const terminalHandledRef = useRef<string | null>(null);
 
@@ -247,10 +252,10 @@ export function DataLoadPage() {
 
   const detail = detailQuery.data ?? null;
   const detailLoading = detailQuery.isPending && Boolean(detailEntryId);
-  const detailFailure = detailQuery.error ?? detailQuery.failureReason;
-  const detailError = detailFailure
-    ? requestMessage(detailFailure)
+  const detailError = detailQuery.error
+    ? requestMessage(detailQuery.error)
     : null;
+  const detailKey = queryKeys.dataLoad.historyDetail(detailEntryId ?? "");
 
   const progress = inFlightRange ? progressQuery.data ?? null : null;
   const isBackgroundRefresh = [
@@ -260,14 +265,22 @@ export function DataLoadPage() {
     detailQuery,
   ].some((query) => query.isFetching && query.data !== undefined);
 
+  const monitorActive = running || Boolean(inFlightRange);
   useEffect(() => {
-    if (!running) return undefined;
-    const started = Date.now();
-    const timer = window.setInterval(() => {
-      setElapsed(Math.floor((Date.now() - started) / 1000));
-    }, 1000);
+    if (!monitorActive) return undefined;
+    const started = inFlightRange?.startedAt
+      ? Date.parse(inFlightRange.startedAt)
+      : Date.now();
+    const tick = () =>
+      setElapsed(Math.max(0, Math.floor((Date.now() - started) / 1000)));
+    tick();
+    const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
-  }, [running]);
+  }, [
+    monitorActive,
+    inFlightRange?.groupId,
+    inFlightRange?.startedAt,
+  ]);
 
   useEffect(() => {
     restoredNoticeRef.current = false;
@@ -275,7 +288,7 @@ export function DataLoadPage() {
   }, [inFlightRange?.groupId]);
 
   useEffect(() => {
-    if (running || !inFlightRange) return;
+    if (!inFlightRange) return;
     const snapshot = progressQuery.data;
     if (!snapshot) {
       if (progressQuery.isError && !restoredNoticeRef.current) {
@@ -300,33 +313,78 @@ export function DataLoadPage() {
       TERMINAL_PROGRESS_STATUSES.has(snapshot.status) &&
       terminalHandledRef.current !== inFlightRange.groupId
     ) {
-      terminalHandledRef.current = inFlightRange.groupId;
-      setRestoredDetailId(inFlightRange.groupId);
+      const groupId = inFlightRange.groupId;
+      terminalHandledRef.current = groupId;
+      setRestoredDetailId(groupId);
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.set("selected", groupId);
+          return next;
+        },
+        { replace: true },
+      );
       setReturnNotice("The range run completed on the server.");
-      void invalidateAfterProgressTerminal(queryClient, inFlightRange.groupId);
+
+      void (async () => {
+        try {
+          const detail = await queryClient.fetchQuery(
+            historyDetailQueryOptions(groupId),
+          );
+          const report = rangeReportFromDetail(detail, groupId);
+          if (report) {
+            setLastReport({
+              domain: report.data_domain,
+              mode: "range",
+              completedAt: new Date().toISOString(),
+              groupId,
+              report,
+            });
+            await invalidateAfterLoad(queryClient, { report, groupId });
+          } else {
+            await invalidateAfterProgressTerminal(queryClient, groupId);
+          }
+        } catch {
+          setReturnNotice(
+            "The run completed, but its report could not be loaded. Refresh history to try again.",
+          );
+          await invalidateAfterProgressTerminal(queryClient, groupId);
+        } finally {
+          setInFlightRange(null);
+        }
+      })();
     }
   }, [
     inFlightRange,
     progressQuery.data,
     progressQuery.isError,
     queryClient,
-    running,
+    setInFlightRange,
+    setLastReport,
+    setRestoredDetailId,
+    setSearchParams,
   ]);
 
   const updateFilters = useCallback(
     (patch: Partial<HistoryFiltersValue>) => {
       const next = new URLSearchParams(searchParams);
       for (const [key, value] of Object.entries(patch)) {
-        if (value === undefined || value === null || value === "") next.delete(key);
-        else next.set(key, String(value));
+        if (value === undefined || value === null || value === "") {
+          next.delete(key);
+        } else {
+          next.set(key, String(value));
+        }
       }
-      if (!("page" in patch) && !("selected" in patch)) next.set("page", "1");
+      if (!("page" in patch) && !("selected" in patch)) {
+        next.set("page", "1");
+      }
       setSearchParams(next, { replace: true });
     },
     [searchParams, setSearchParams],
   );
 
   const submit = useCallback(async () => {
+    if (useDataLoadStore.getState().inFlightRange) return;
     const draft = useDataLoadStore.getState().draft;
     const errors = validateDraft(draft, domains, sources);
     setValidationErrors(errors);
@@ -341,6 +399,7 @@ export function DataLoadPage() {
       value: identifier.value,
     }));
 
+    let rangeStarted = false;
     try {
       if (draft.mode === "single") {
         const report = await loadOnceMutation.mutateAsync({
@@ -365,7 +424,7 @@ export function DataLoadPage() {
           from: draft.from,
           to: draft.to,
         });
-        const report = await loadRangeMutation.mutateAsync({
+        await startRangeLoadMutation.mutateAsync({
           identifiers,
           from: draft.from,
           to: draft.to,
@@ -375,24 +434,18 @@ export function DataLoadPage() {
           data_domain: draft.domain,
           client_group_id: groupId,
         });
-        setLastReport({
-          domain: draft.domain,
-          mode: "range",
-          completedAt: new Date().toISOString(),
-          groupId,
-          report,
-        });
+        rangeStarted = true;
       }
     } catch (error) {
       setRequestError(requestMessage(error));
     } finally {
-      setInFlightRange(null);
+      if (!rangeStarted) setInFlightRange(null);
       setRunning(false);
     }
   }, [
     domains,
     loadOnceMutation,
-    loadRangeMutation,
+    startRangeLoadMutation,
     setInFlightRange,
     setLastReport,
     sources,
@@ -442,19 +495,41 @@ export function DataLoadPage() {
     [updateFilters],
   );
 
-  const handleClearFilters = useCallback(() => {
+  const handleCloseDetail = useCallback(() => {
     setRestoredDetailId(null);
-    setSearchParams({}, { replace: true });
-  }, [setSearchParams]);
+    updateFilters({ selected: undefined });
+  }, [updateFilters]);
 
   const handleHistoryRefresh = useCallback(() => {
     void historyQuery.refetch();
   }, [historyQuery]);
 
-  const handleCloseDetail = useCallback(() => {
-    setRestoredDetailId(null);
-    updateFilters({ selected: undefined });
-  }, [updateFilters]);
+  const handleStopRange = useCallback(async () => {
+    if (!inFlightRange) return;
+    const groupId = inFlightRange.groupId;
+    setStopping(true);
+    setRequestError(null);
+    try {
+      const result = await stopRangeLoadMutation.mutateAsync(groupId);
+      setReturnNotice(
+        result.stopped
+          ? "Stop requested. No new dates will start; in-flight dates are allowed to finish."
+          : "This run is not active on the server (for example after a restart). Dismissed it locally.",
+      );
+      setInFlightRange(null);
+      setRestoredDetailId(null);
+      void historyQuery.refetch();
+    } catch (error) {
+      setRequestError(requestMessage(error));
+    } finally {
+      setStopping(false);
+    }
+  }, [
+    historyQuery,
+    inFlightRange,
+    setInFlightRange,
+    stopRangeLoadMutation,
+  ]);
 
   const handleReset = useCallback(() => {
     if (window.confirm("Clear the draft and the last report?")) reset();
@@ -476,10 +551,14 @@ export function DataLoadPage() {
         <LastUpdatedLabel queryKey={queryKeys.dataLoad.sources(domain)} />
       </div>
       <div className="obolargus_status_region" aria-live="polite" role="status">
-        {running ? `Loading… ${elapsed}s` : null}
+        {running || inFlightRange ? `Running… ${elapsed}s` : null}
         {progress
-          ? ` Date ${progress.dates_completed} of ${progress.dates_requested ?? "?"}.`
-          : null}
+          ? ` ${progress.status} — ${progress.dates_completed} of ${
+              progress.dates_requested ?? "?"
+            } date(s) completed.`
+          : inFlightRange
+            ? " Starting — waiting for the first date."
+            : null}
         {progress && !online ? " Last known progress — not live." : null}
         {isBackgroundRefresh ? " Refreshing data…" : null}
         {returnNotice}
@@ -499,7 +578,7 @@ export function DataLoadPage() {
           domains={domains}
           sources={sources}
           errors={validationErrors}
-          running={running}
+          running={running || Boolean(inFlightRange)}
           catalogError={catalogError}
           domainsLoading={domainsLoading}
           catalogLoading={catalogLoading}
@@ -518,7 +597,62 @@ export function DataLoadPage() {
         </div>
       </div>
 
-      {running ? (
+      {inFlightRange ? (
+        <div
+          className="obolargus_panel obolargus_report_panel obolargus_run_monitor"
+          aria-busy="true"
+        >
+          <h2>Run monitor</h2>
+          <dl className="obolargus_report_summary">
+            <dt>Group ID</dt>
+            <dd>{inFlightRange.groupId}</dd>
+            <dt>Range</dt>
+            <dd>
+              {inFlightRange.from} to {inFlightRange.to}
+            </dd>
+            <dt>Status</dt>
+            <dd>{progress?.status ?? "starting"}</dd>
+            <dt>Dates completed</dt>
+            <dd>
+              {progress?.dates_completed ?? 0} /{" "}
+              {progress?.dates_requested ?? "?"}
+            </dd>
+            <dt>Dates failed</dt>
+            <dd>{progress?.dates_failed ?? 0}</dd>
+            <dt>Dates with loads</dt>
+            <dd>{progress?.dates_with_loads ?? 0}</dd>
+            <dt>Started</dt>
+            <dd>{inFlightRange.startedAt}</dd>
+            <dt>Last update</dt>
+            <dd>{progress?.updated_at ?? "waiting for the first date"}</dd>
+            <dt>Elapsed</dt>
+            <dd>{elapsed}s</dd>
+          </dl>
+          <p className="obolargus_form_note">
+            Polling every 2 seconds. The run continues on the server if you
+            leave this page.
+          </p>
+          <p className="obolargus_form_note">
+            If the services were restarted, this run is no longer active. Use
+            Stop run to dismiss it.
+          </p>
+          {progress && !online ? (
+            <p className="obolargus_form_note">
+              Last known progress — not live.
+            </p>
+          ) : null}
+          <div className="obolargus_form_actions">
+            <Button
+              type="button"
+              variant="danger"
+              onClick={handleStopRange}
+              disabled={stopping}
+            >
+              {stopping ? "Stopping…" : "Stop run"}
+            </Button>
+          </div>
+        </div>
+      ) : running ? (
         <div
           className="obolargus_panel obolargus_report_panel obolargus_loading_block"
           aria-busy="true"
@@ -546,11 +680,6 @@ export function DataLoadPage() {
       )}
 
       <section className="obolargus_panel obolargus_history_panel" aria-label="History area">
-        <HistoryFilters
-          filters={filters}
-          onChange={updateFilters}
-          onClear={handleClearFilters}
-        />
         <LastUpdatedLabel queryKey={historyKey} />
         <HistoryPanel
           page={historyPage}
@@ -561,7 +690,6 @@ export function DataLoadPage() {
           onSelect={handleSelectHistory}
           onPage={handleHistoryPage}
           onRefresh={handleHistoryRefresh}
-          onClearFilters={handleClearFilters}
         />
         {detailError && <p role="alert">History detail failed: {detailError}</p>}
         {detailLoading && !detail && (
@@ -579,10 +707,7 @@ export function DataLoadPage() {
             <LastUpdatedLabel queryKey={detailKey} />
             <HistoryDetail detail={detail} />
             <div className="obolargus_form_actions">
-              <Button
-                type="button"
-                onClick={handleCloseDetail}
-              >
+              <Button type="button" onClick={handleCloseDetail}>
                 Close detail
               </Button>
             </div>

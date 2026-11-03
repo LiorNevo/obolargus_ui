@@ -1,11 +1,12 @@
 import React, { memo, useMemo } from "react";
-import { Table } from "lx_client/js/components/Table";
 import Loading from "lx_client/js/components/Loading";
 import { Button } from "lx_client/js/components/Button";
+import { Table } from "lx_client/js/components/Table";
 import type { TableColumnDef } from "lx_client/js/components/Table";
-import type { HistoryEntry, HistoryFiltersValue, HistoryPage } from "../../types/dataLoad";
+import type { HistoryFiltersValue, HistoryPage } from "../../types/dataLoad";
+import { historyRows, type HistoryRow } from "./historyRows";
 
-/** Props for the history list. */
+/** Props for the history table. */
 export interface HistoryPanelProps {
   page: HistoryPage | null;
   filters: HistoryFiltersValue;
@@ -15,28 +16,9 @@ export interface HistoryPanelProps {
   onSelect: (entryId: string) => void;
   onPage: (page: number) => void;
   onRefresh: () => void;
-  onClearFilters: () => void;
 }
 
-function statusLabel(entry: HistoryEntry): string {
-  if (entry.status === "running") {
-    return entry.stale ? "Incomplete / interrupted" : "Running";
-  }
-  if (entry.status === "source_enabled") return "Source enabled";
-  if (entry.status === "source_disabled") return "Source disabled";
-  return entry.status;
-}
-
-function failureCount(entry: HistoryEntry): number {
-  return (
-    entry.rejected +
-    entry.source_unavailable +
-    entry.rate_limited +
-    entry.storage_failure
-  );
-}
-
-/** Newest-first history table with total, paging, and honest states. */
+/** Newest-first history table with header filters and row grouping. */
 export const HistoryPanel = memo(function HistoryPanel({
   page,
   filters,
@@ -46,88 +28,47 @@ export const HistoryPanel = memo(function HistoryPanel({
   onSelect,
   onPage,
   onRefresh,
-  onClearFilters,
 }: HistoryPanelProps) {
   const pageNumber = filters.page ?? 1;
   const limit = page?.limit ?? 50;
   const total = page?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / limit));
+  const tableKey = `data-load-history-page-${pageNumber}`;
+  const rows = useMemo(
+    () => historyRows(page?.entries ?? []),
+    [page?.entries],
+  );
 
-  const columns = useMemo<TableColumnDef<HistoryEntry>[]>(
+  const columns = useMemo<TableColumnDef<HistoryRow>[]>(
     () => [
-      { id: "started", accessorKey: "started_at", header: "Started" },
       {
-        id: "type",
-        accessorKey: "entry_type",
-        header: "Type",
-        cell: ({ row }) =>
-          row.original.entry_type === "source_change"
-            ? "Configuration change"
-            : row.original.entry_type,
+        id: "entryId",
+        accessorKey: "entryId",
+        header: "Run / change ID",
       },
-      {
-        id: "domain",
-        accessorKey: "data_domain",
-        header: "Domain",
-        cell: ({ row }) => row.original.data_domain ?? "—",
-      },
-      {
-        id: "source",
-        header: "Source",
-        cell: ({ row }) => {
-          const entry = row.original;
-          if (entry.entry_type === "source_change") {
-            return `${entry.source_id}: ${entry.before_enabled ? "enabled" : "disabled"} → ${entry.after_enabled ? "enabled" : "disabled"}`;
-          }
-          return (
-            entry.requested_source ??
-            (entry.answering_sources.join(", ") || "Auto")
-          );
-        },
-      },
-      {
-        id: "requested",
-        header: "Requested / unique",
-        cell: ({ row }) =>
-          row.original.entry_type === "source_change"
-            ? "—"
-            : `${row.original.identifiers_requested_raw} / ${row.original.identifiers_requested_raw - row.original.identifiers_duplicated}`,
-      },
-      {
-        id: "loaded",
-        accessorKey: "loaded",
-        header: "Loaded",
-        cell: ({ row }) =>
-          row.original.entry_type === "source_change" ? "—" : row.original.loaded,
-      },
-      {
-        id: "failures",
-        header: "Failures",
-        cell: ({ row }) =>
-          row.original.entry_type === "source_change"
-            ? "—"
-            : failureCount(row.original),
-      },
-      {
-        id: "status",
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ row }) => statusLabel(row.original),
-      },
-      {
-        id: "duration",
-        accessorKey: "duration_ms",
-        header: "Duration",
-        cell: ({ row }) =>
-          row.original.duration_ms === null
-            ? "—"
-            : `${row.original.duration_ms} ms`,
-      },
+      { id: "type", accessorKey: "type", header: "Type" },
+      { id: "started", accessorKey: "started", header: "Started" },
+      { id: "dateRange", accessorKey: "dateRange", header: "Date range" },
+      { id: "domain", accessorKey: "domain", header: "Domain" },
+      { id: "source", accessorKey: "source", header: "Source" },
+      { id: "status", accessorKey: "status", header: "Status" },
+      { id: "requested", accessorKey: "requested", header: "Requested" },
+      { id: "unique", accessorKey: "unique", header: "Unique" },
+      { id: "attempted", accessorKey: "attempted", header: "Attempted" },
+      { id: "loaded", accessorKey: "loaded", header: "Loaded" },
+      { id: "failures", accessorKey: "failures", header: "Failures" },
+      { id: "duration", accessorKey: "duration", header: "Duration" },
+      { id: "dates", accessorKey: "dates", header: "Dates" },
+      { id: "actor", accessorKey: "actor", header: "Actor" },
       {
         id: "open",
-        header: "Open",
+        header: "Detail",
+        enableGrouping: false,
         cell: ({ row }) => (
-          <Button type="button" onClick={() => onSelect(row.original.entry_id)}>
+          <Button
+            type="button"
+            onClick={() => onSelect(row.original.entryId)}
+          >
             Open
           </Button>
         ),
@@ -157,34 +98,27 @@ export const HistoryPanel = memo(function HistoryPanel({
         <div className="obolargus_loading_block" aria-busy="true">
           <Loading compact label="Loading history..." />
           <Table
-            tableKey="data-load-history"
+            tableKey={tableKey}
             columns={columns}
             data={[]}
             loading
             skeletonRows={6}
-            enableSorting={false}
-            enableFiltering={false}
+            enableFiltering
+            enableGrouping
             enablePagination={false}
           />
         </div>
-      ) : !error && page && page.entries.length === 0 ? (
-        <div>
-          <p>No entries match these filters.</p>
-          <Button type="button" onClick={onClearFilters}>
-            Clear filters
-          </Button>
-        </div>
+      ) : page && page.entries.length === 0 ? (
+        <p>No entries match this page.</p>
       ) : page ? (
         <>
           <p>{total} entries</p>
           <Table
-            tableKey="data-load-history"
+            tableKey={tableKey}
             columns={columns}
-            data={page.entries}
-            loading={loading}
-            skeletonRows={6}
-            enableSorting={false}
-            enableFiltering={false}
+            data={rows}
+            enableFiltering
+            enableGrouping
             enablePagination={false}
           />
           <nav aria-label="History pages">

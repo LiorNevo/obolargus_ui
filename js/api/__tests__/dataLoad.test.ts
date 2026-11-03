@@ -6,6 +6,8 @@ import {
   fetchSources,
   loadOnce,
   loadRange,
+  startLoadRange,
+  stopLoadRange,
   toggleSource,
 } from "../dataLoad";
 
@@ -134,6 +136,45 @@ describe("dataLoad API mutations and reads", () => {
     });
     expect(String(spy.mock.calls[0][0])).toContain("/market-data/load-range");
     expect(spy.mock.calls[0][1]?.body).toContain('"client_group_id":"g"');
+  });
+
+  it("posts a fire-and-forget range load", async () => {
+    const spy = mockFetch(
+      new Response(JSON.stringify({ group_id: "g", status: "accepted" }), {
+        status: 202,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const accepted = await startLoadRange({
+      identifiers: [{ type: "TICKER", value: "AAPL" }],
+      from: "2026-10-01",
+      to: "2026-10-02",
+      concurrency: 2,
+      source: null,
+      create_missing_assets: false,
+      data_domain: "market_data",
+      client_group_id: "g",
+    });
+    expect(accepted.group_id).toBe("g");
+    expect(accepted.status).toBe("accepted");
+    expect(String(spy.mock.calls[0][0])).toContain(
+      "/market-data/load-range/async",
+    );
+  });
+
+  it("requests cancellation of a range run", async () => {
+    const spy = mockFetch(
+      new Response(JSON.stringify({ stopped: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const result = await stopLoadRange("group-1");
+    expect(result.stopped).toBe(true);
+    expect(String(spy.mock.calls[0][0])).toContain(
+      "/data-load/history/groups/group-1/stop",
+    );
+    expect(spy.mock.calls[0][1]?.method).toBe("POST");
   });
 
   it("reads detail and progress", async () => {

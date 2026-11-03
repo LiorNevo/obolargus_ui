@@ -1,13 +1,22 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import type { RangeReport as RangeReportType } from "../../types/dataLoad";
-import { LoadReport } from "./LoadReport";
+import { RunOutcomeTable } from "./RunOutcomeTable";
+import { groupRangeReport } from "./runGroups";
 
-/** Range summary plus one ascending section per date. */
-export const RangeReport = memo(function RangeReport({ report }: { report: RangeReportType }) {
+/** Range summary plus the shared grouped/filterable results table. */
+export const RangeReport = memo(function RangeReport({
+  report,
+}: {
+  report: RangeReportType;
+}) {
+  const groups = useMemo(() => groupRangeReport(report), [report]);
+
   return (
     <section className="obolargus_range_report" aria-label="Range report">
       <h2>Range report</h2>
       <dl>
+        <dt>Range group ID</dt>
+        <dd>{report.range_group_id}</dd>
         <dt>Range</dt>
         <dd>
           {report.from} to {report.to}
@@ -30,25 +39,10 @@ export const RangeReport = memo(function RangeReport({ report }: { report: Range
             report.totals.storage_failure}
         </dd>
       </dl>
-      {report.dates.map((section) => (
-        <section key={section.date} aria-label={`Date ${section.date}`}>
-          <h3>{section.date}</h3>
-          {section.report.loaded === 0 && section.report.no_op === 0 ? (
-            <p>
-              Nothing stored for this date (
-              {section.report.rejected +
-                section.report.source_unavailable +
-                section.report.rate_limited +
-                section.report.storage_failure >
-              0
-                ? "failed"
-                : "no data exists"}
-              ).
-            </p>
-          ) : null}
-          <LoadReport report={section.report} />
-        </section>
-      ))}
+      <RunOutcomeTable
+        groups={groups}
+        tableKey={`data-load-range-report-${report.range_group_id}`}
+      />
     </section>
   );
 });

@@ -205,6 +205,15 @@ export interface HistoryDetail {
   } | null;
 }
 
+export interface RangeLoadAccepted {
+  group_id: string;
+  status: string;
+}
+
+export interface StopRangeResult {
+  stopped: boolean;
+}
+
 export interface RangeProgress {
   group_id: string;
   status: "starting" | "running" | "complete" | "partial" | "failed";
