@@ -10,7 +10,11 @@ import { DashboardApiError } from "../../api/dashboard";
 export function toDataError(caught: unknown): DashboardDataError {
   if (caught instanceof DashboardDataError) return caught;
   if (caught instanceof DashboardApiError) {
-    return new DashboardDataError(caught.message, {
+    const message =
+      caught.code === "unknown_subject"
+        ? "This instrument no longer exists. Choose another instrument."
+        : caught.message;
+    return new DashboardDataError(message, {
       code: caught.code,
       retryable: caught.retryable,
       status: caught.status,

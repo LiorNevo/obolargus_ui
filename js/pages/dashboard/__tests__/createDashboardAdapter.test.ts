@@ -1,30 +1,36 @@
 import { createDashboardAdapter } from "../createDashboardAdapter";
 import { createTestQueryClient } from "../../../query/client";
 import { DashboardApiError } from "../../../api/dashboard";
-import type { SeriesResponseWire } from "../../../types/dashboard";
+import { toDataError } from "../toDataError";
+import type { FactValueWire, SeriesResponseWire } from "../../../types/dashboard";
 
-function point(date: string, value: string, source = "test") {
+function point(date: string, value: FactValueWire | null, source = "test") {
   return {
     subject: "asset",
     subject_id: "asset-1",
     id: `${date}-id`,
     fact_type: "market_price",
+    schema_version: 1,
     valid_at: `${date}T00:00:00Z`,
     known_at: `${date}T21:00:00Z`,
     value,
     source,
     retracted: false,
+    retraction_reason: null,
   };
 }
 
-const value = JSON.stringify({
+const value: FactValueWire = {
+  type: "market_price",
   open: "100.00",
   high: "103.00",
   low: "99.00",
   close: "102.00",
   adjclose: "102.00",
   volume: "1000",
-});
+  currency: "USD",
+  adjustment: "unadjusted",
+};
 
 function page(
   points: SeriesResponseWire["points"],
@@ -42,6 +48,20 @@ function page(
 }
 
 describe("dashboard data adapter", () => {
+  it("turns an unknown subject into a friendly, non-retryable error", () => {
+    const error = toDataError(
+      new DashboardApiError(
+        404,
+        "unknown_subject",
+        "unknown subject: asset 2373bf80-3288-4df1-ada6-eb62e725c16d",
+        false,
+      ),
+    );
+    expect(error.code).toBe("unknown_subject");
+    expect(error.retryable).toBe(false);
+    expect(error.message).toContain("no longer exists");
+  });
+
   it("converts the inclusive UI range to an exclusive server bound and pages", async () => {
     const calls: unknown[] = [];
     const adapter = createDashboardAdapter(createTestQueryClient(), {
@@ -92,15 +112,18 @@ describe("dashboard data adapter", () => {
     expect(series.points[0].source).toBe("test");
   });
 
-  it("keeps a numeric volume as a decimal string", async () => {
-    const numericValue = JSON.stringify({
+  it("keeps a zero volume as a decimal string", async () => {
+    const numericValue: FactValueWire = {
+      type: "market_price",
       open: "19.80",
       high: "19.80",
       low: "19.80",
       close: "19.80",
       adjclose: "19.80",
-      volume: 0,
-    });
+      volume: "0",
+      currency: "USD",
+      adjustment: "unadjusted",
+    };
     const adapter = createDashboardAdapter(createTestQueryClient(), {
       searchAssets: () => Promise.resolve({ items: [] }),
       loadSeriesPage: () =>
@@ -118,7 +141,7 @@ describe("dashboard data adapter", () => {
     const adapter = createDashboardAdapter(createTestQueryClient(), {
       searchAssets: () => Promise.resolve({ items: [] }),
       loadSeriesPage: () =>
-        Promise.resolve(page([point("2026-01-02", "not-json")], null)),
+        Promise.resolve(page([point("2026-01-02", null)], null)),
     });
     const series = await adapter.loadDailyBars(
       "asset-1",

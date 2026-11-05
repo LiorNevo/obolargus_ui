@@ -29,6 +29,7 @@ describe("quota-handling policy", () => {
   });
 
   it("never rejects a message handler on a failed cache operation", async () => {
+    const error = jest.spyOn(console, "error").mockImplementation(() => {});
     await expect(
       handleWorkerMessage(
         { type: "CLEAR_CACHES", requestId: "q1", payload: {} },
@@ -43,5 +44,7 @@ describe("quota-handling policy", () => {
       type: "CACHES_CLEARED",
       payload: { failed: ["unknown"] },
     });
+    expect(error).toHaveBeenCalled();
+    error.mockRestore();
   });
 });

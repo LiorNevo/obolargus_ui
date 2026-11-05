@@ -14,17 +14,42 @@ export interface AssetSearchResponse {
   items: AssetSearchItem[];
 }
 
+/** A typed market-price value. */
+export interface MarketPriceValueWire {
+  type: "market_price";
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  adjclose?: string | null;
+  volume?: string | null;
+  currency: string;
+  adjustment: string;
+}
+
+/** The typed value union returned by the fact API. */
+export type FactValueWire =
+  | { type: "text"; value: string }
+  | { type: "decimal"; value: string }
+  | { type: "integer"; value: string }
+  | { type: "boolean"; value: boolean }
+  | { type: "date"; value: string }
+  | { type: "timestamp"; value: string }
+  | MarketPriceValueWire;
+
 /** One resolved fact point. */
 export interface FactPointWire {
   subject: string;
   subject_id: string;
   id: string;
   fact_type: string;
+  schema_version: number;
   valid_at: string;
   known_at: string;
-  value: string;
+  value: FactValueWire | null;
   source: string;
   retracted: boolean;
+  retraction_reason: string | null;
 }
 
 /** Series page coverage. */

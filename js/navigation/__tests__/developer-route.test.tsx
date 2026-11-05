@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { createPageRegistry } from "lx_client/js/navigation/registry";
 import { buildAppRoutes } from "lx_client/js/navigation/routes";
@@ -16,22 +16,24 @@ function renderAt(path: string) {
 }
 
 describe("developer-only route", () => {
-  it("resolves /__components by direct URL", () => {
+  it("resolves /__components by direct URL", async () => {
     renderAt("/__components");
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "Test Page" }),
+      await screen.findByRole("heading", { level: 1, name: "Test Page" }),
     ).toBeInTheDocument();
   });
 
-  it("keeps the developer route out of the landing page and primary navigation", () => {
+  it("keeps the developer route out of the landing page and primary navigation", async () => {
     renderAt("/");
 
-    expect(screen.queryByText(/component test/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/__components/)).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: /component test/i }),
-    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText(/component test/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/__components/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("link", { name: /component test/i }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it("does not register the docs runner", () => {

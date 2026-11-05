@@ -4,7 +4,11 @@ import {
   type DailyBarSeries,
   type DateRange,
 } from "lx_client/js/components/Dashboard/types";
-import type { FactPointWire, SeriesResponseWire } from "../../types/dashboard";
+import type {
+  FactPointWire,
+  MarketPriceValueWire,
+  SeriesResponseWire,
+} from "../../types/dashboard";
 import type { ReadMeta } from "../../offline/responseProvenance";
 import { toDataError } from "./toDataError";
 
@@ -27,19 +31,11 @@ function addOneDay(date: string): string {
 }
 
 function parsePoint(point: FactPointWire): DailyBar {
-  let value: Record<string, unknown> = {};
-  try {
-    const parsed = JSON.parse(point.value) as unknown;
-    if (parsed && typeof parsed === "object") {
-      value = parsed as Record<string, unknown>;
-    }
-  } catch {
-    // Keep empty fields; the candlestick parser excludes the bar.
-  }
-  const decimalField = (key: string): string => {
-    const raw = value[key];
+  const value: MarketPriceValueWire | null =
+    point.value?.type === "market_price" ? point.value : null;
+  const decimalField = (key: keyof MarketPriceValueWire): string => {
+    const raw = value?.[key];
     if (typeof raw === "string") return raw;
-    if (typeof raw === "number" && Number.isFinite(raw)) return String(raw);
     return "";
   };
   return {

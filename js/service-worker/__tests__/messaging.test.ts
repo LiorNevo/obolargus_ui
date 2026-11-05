@@ -42,6 +42,7 @@ describe("worker messaging", () => {
   });
 
   it("reports a failed clear without rejecting", async () => {
+    const error = jest.spyOn(console, "error").mockImplementation(() => {});
     const fake = effects({
       clearCaches: jest.fn().mockRejectedValue(new Error("boom")),
     });
@@ -53,6 +54,8 @@ describe("worker messaging", () => {
       type: "CACHES_CLEARED",
       payload: { cleared: [], failed: ["unknown"] },
     });
+    expect(error).toHaveBeenCalled();
+    error.mockRestore();
   });
 
   it("returns version information", async () => {
