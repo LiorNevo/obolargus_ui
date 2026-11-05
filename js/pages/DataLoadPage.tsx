@@ -48,6 +48,8 @@ import {
 } from "../query/invalidation";
 import { normalizeHistoryFilters, queryKeys } from "../query/keys";
 import { IdentifierBatchInput } from "./data-load/IdentifierBatchInput";
+import { IdentifierSearch } from "./data-load/IdentifierSearch";
+import { appendIdentifiersToDraft } from "./data-load/searchSelection";
 import { LoadForm, validateDraft } from "./data-load/LoadForm";
 import { LoadReport } from "./data-load/LoadReport";
 import { RangeReport } from "./data-load/RangeReport";
@@ -145,9 +147,31 @@ function LoadPanel({
     },
     [setDraft],
   );
+  const handleAddIdentifiers = useCallback(
+    (additions: ParsedIdentifier[]) => {
+      const current = useDataLoadStore.getState().draft;
+      const result = appendIdentifiersToDraft(current, additions);
+      setDraft({
+        identifierText: result.text,
+        identifiers: result.identifiers,
+      });
+      return { added: result.added.length, skipped: result.skipped };
+    },
+    [setDraft],
+  );
+  const handleToggleCreateMissing = useCallback(
+    (checked: boolean) => setDraft({ createMissingAssets: checked }),
+    [setDraft],
+  );
 
   return (
     <div className="obolargus_panel obolargus_load_panel">
+      <IdentifierSearch
+        draft={draft}
+        sources={sources}
+        onAddIdentifiers={handleAddIdentifiers}
+        onToggleCreateMissing={handleToggleCreateMissing}
+      />
       <IdentifierBatchInput
         text={draft.identifierText}
         identifiers={draft.identifiers}

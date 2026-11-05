@@ -45,8 +45,22 @@ function seed(client: ReturnType<typeof createTestQueryClient>) {
     {},
   );
   client.setQueryData(queryKeys.assets.search("Apple", 20), {});
+  client.setQueryData(
+    queryKeys.dataLoad.identifierSearch({
+      q: "apple",
+      domain: "market_data",
+    }),
+    {},
+  );
   client.setQueryData(queryKeys.dataLoad.progress("group-1"), {});
   return pageKey;
+}
+
+function identifierSearchKey() {
+  return queryKeys.dataLoad.identifierSearch({
+    q: "apple",
+    domain: "market_data",
+  });
 }
 
 describe("cache invalidation", () => {
@@ -66,13 +80,16 @@ describe("cache invalidation", () => {
     ).toBe(false);
     expect(client.getQueryState(pageKey)?.isInvalidated).toBe(true);
     expect(
+      client.getQueryState(identifierSearchKey())?.isInvalidated,
+    ).toBe(true);
+    expect(
       client.getQueryState(
         queryKeys.marketSeries.detail("asset-2", "2026-10-01", "2026-10-02"),
       )?.isInvalidated,
     ).toBe(false);
   });
 
-  it("invalidates history, affected series, and asset search after a load", async () => {
+  it("invalidates history, affected series, asset search, and identifier search after a load", async () => {
     const client = createTestQueryClient();
     const pageKey = seed(client);
 
@@ -95,9 +112,12 @@ describe("cache invalidation", () => {
       client.getQueryState(queryKeys.assets.search("Apple", 20))
         ?.isInvalidated,
     ).toBe(true);
+    expect(
+      client.getQueryState(identifierSearchKey())?.isInvalidated,
+    ).toBe(true);
   });
 
-  it("does not invalidate asset search when no asset was created", async () => {
+  it("does not invalidate asset or identifier search when no asset was created", async () => {
     const client = createTestQueryClient();
     seed(client);
 
@@ -106,6 +126,9 @@ describe("cache invalidation", () => {
     expect(
       client.getQueryState(queryKeys.assets.search("Apple", 20))
         ?.isInvalidated,
+    ).toBe(false);
+    expect(
+      client.getQueryState(identifierSearchKey())?.isInvalidated,
     ).toBe(false);
   });
 

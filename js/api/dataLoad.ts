@@ -4,6 +4,8 @@ import type {
   HistoryDetail,
   HistoryFiltersValue,
   HistoryPage,
+  IdentifierSearchParams,
+  IdentifierSearchResponse,
   LoadReport,
   RangeLoadAccepted,
   RangeProgress,
@@ -80,6 +82,25 @@ export function fetchSources(
     `/data-load/sources${query}`,
     { signal },
     onMeta,
+  );
+}
+
+/** Runs a read-only external identifier search. */
+export function fetchIdentifierSearch(
+  params: IdentifierSearchParams,
+  signal?: AbortSignal,
+): Promise<IdentifierSearchResponse> {
+  const query = new URLSearchParams();
+  query.set("q", params.q);
+  if (params.domain) query.set("domain", params.domain);
+  if (params.source) query.set("source", params.source);
+  if (params.asset_type) query.set("asset_type", params.asset_type);
+  if (params.exchange) query.set("exchange", params.exchange);
+  if (params.limit !== undefined) query.set("limit", String(params.limit));
+  if (params.offset !== undefined) query.set("offset", String(params.offset));
+  return request<IdentifierSearchResponse>(
+    `/data-load/identifier-search?${query.toString()}`,
+    { signal },
   );
 }
 

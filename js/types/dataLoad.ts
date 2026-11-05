@@ -39,6 +39,120 @@ export interface ParsedIdentifier {
   value: string;
 }
 
+/** Query parameters for the read-only identifier search. */
+export interface IdentifierSearchParams {
+  q: string;
+  domain?: string | null;
+  source?: string | null;
+  asset_type?: string | null;
+  exchange?: string | null;
+  limit?: number;
+  offset?: number;
+}
+
+/** Overall status of one identifier search. */
+export type IdentifierSearchOutcome =
+  | "complete"
+  | "partial"
+  | "failed"
+  | "no_sources";
+
+/** One source's typed search status. */
+export type SearchSourceStatus =
+  | "answered"
+  | "no_match"
+  | "rate_limited"
+  | "unavailable"
+  | "rejected";
+
+/** How an existing asset matched a candidate identifier. */
+export type KnownMatchKind = "exact" | "equivalent_ticker";
+
+/** One source that answered a candidate. */
+export interface CandidateSource {
+  source_id: string;
+  display_name: string;
+  relevance: number | null;
+}
+
+/** One identifier the operator could add. */
+export interface CandidateIdentifier {
+  scheme: string;
+  value: string;
+  label: string;
+  primary: boolean;
+  addable: boolean;
+  creatable: boolean;
+  reason: string | null;
+}
+
+/** One value a source reported for a conflicting field. */
+export interface ConflictingValue {
+  value: string;
+  sources: string[];
+}
+
+/** A source disagreement about one field. */
+export interface FieldConflict {
+  field: "display_name" | "asset_type" | "exchange" | "currency";
+  values: ConflictingValue[];
+}
+
+/** The existing asset that claims a candidate identifier. */
+export interface KnownAssetRef {
+  asset_id: string;
+  asset_type: string;
+  display_name: string;
+  currency: string;
+  matched_scheme: string;
+  matched_value: string;
+  match_kind: KnownMatchKind;
+}
+
+/** One consolidated search result. */
+export interface SearchCandidate {
+  symbol: string;
+  display_name: string;
+  asset_type: string | null;
+  exchange: string | null;
+  venue_mic: string | null;
+  currency: string | null;
+  relevance: number | null;
+  sources: CandidateSource[];
+  identifiers: CandidateIdentifier[];
+  conflicts: FieldConflict[];
+  known: KnownAssetRef | null;
+  addable: boolean;
+  not_addable_reason: string | null;
+  creatable: boolean;
+  creation_blocked_reason: string | null;
+}
+
+/** One source's outcome for a search. */
+export interface SearchSourceOutcome {
+  source_id: string;
+  display_name: string;
+  status: SearchSourceStatus;
+  hit_count: number;
+  error_code: string | null;
+  message: string | null;
+  retry_after_seconds: number | null;
+}
+
+/** The complete response of one identifier search. */
+export interface IdentifierSearchResponse {
+  query: string;
+  domain: string;
+  outcome: IdentifierSearchOutcome;
+  consulted_sources: string[];
+  sources: SearchSourceOutcome[];
+  total: number;
+  offset: number;
+  limit: number;
+  results: SearchCandidate[];
+  message: string | null;
+}
+
 export interface SourceAttempt {
   source_id: string;
   ok: boolean;

@@ -1,4 +1,7 @@
-import type { HistoryFiltersValue } from "../types/dataLoad";
+import type {
+  HistoryFiltersValue,
+  IdentifierSearchParams,
+} from "../types/dataLoad";
 
 /** The list-request parameters that identify one history page. */
 export interface NormalizedHistoryFilters {
@@ -56,6 +59,10 @@ export const queryKeys = {
     sources: (domain: string | null) =>
       ["data-load", "sources", domain] as const,
     allSources: () => ["data-load", "sources"] as const,
+    identifierSearch: (params: IdentifierSearchParams) =>
+      ["data-load", "identifier-search", params] as const,
+    allIdentifierSearches: () =>
+      ["data-load", "identifier-search"] as const,
     historyList: (
       filters: NormalizedHistoryFilters,
       limit: number,

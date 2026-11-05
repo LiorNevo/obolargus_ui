@@ -2,6 +2,7 @@ import {
   DataLoadApiError,
   fetchHistory,
   fetchHistoryDetail,
+  fetchIdentifierSearch,
   fetchProgress,
   fetchSources,
   loadOnce,
@@ -175,6 +176,59 @@ describe("dataLoad API mutations and reads", () => {
       "/data-load/history/groups/group-1/stop",
     );
     expect(spy.mock.calls[0][1]?.method).toBe("POST");
+  });
+
+  it("builds an identifier-search query from every set parameter", async () => {
+    const spy = mockFetch(
+      new Response(JSON.stringify({ query: "apple", results: [] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const controller = new AbortController();
+
+    await fetchIdentifierSearch(
+      {
+        q: "Apple Inc.",
+        domain: "market_data",
+        source: "yahoo_finance",
+        asset_type: "EQUITY",
+        exchange: "XNAS",
+        limit: 25,
+        offset: 50,
+      },
+      controller.signal,
+    );
+
+    const url = new URL(String(spy.mock.calls[0][0]), "http://localhost");
+    expect(url.pathname).toContain("/data-load/identifier-search");
+    expect(url.searchParams.get("q")).toBe("Apple Inc.");
+    expect(url.searchParams.get("domain")).toBe("market_data");
+    expect(url.searchParams.get("source")).toBe("yahoo_finance");
+    expect(url.searchParams.get("asset_type")).toBe("EQUITY");
+    expect(url.searchParams.get("exchange")).toBe("XNAS");
+    expect(url.searchParams.get("limit")).toBe("25");
+    expect(url.searchParams.get("offset")).toBe("50");
+    expect(spy.mock.calls[0][1]?.signal).toBe(controller.signal);
+  });
+
+  it("omits unset identifier-search filters", async () => {
+    const spy = mockFetch(
+      new Response(JSON.stringify({ query: "apple", results: [] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    await fetchIdentifierSearch({ q: "apple" });
+
+    const url = new URL(String(spy.mock.calls[0][0]), "http://localhost");
+    expect(url.searchParams.get("q")).toBe("apple");
+    expect(url.searchParams.has("source")).toBe(false);
+    expect(url.searchParams.has("asset_type")).toBe(false);
+    expect(url.searchParams.has("exchange")).toBe(false);
+    expect(url.searchParams.has("limit")).toBe(false);
+    expect(url.searchParams.has("offset")).toBe(false);
   });
 
   it("reads detail and progress", async () => {

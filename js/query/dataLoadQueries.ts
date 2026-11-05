@@ -3,11 +3,13 @@ import {
   fetchDomains,
   fetchHistory,
   fetchHistoryDetail,
+  fetchIdentifierSearch,
   fetchSources,
 } from "../api/dataLoad";
 import type {
   DataDomainId,
   HistoryFiltersValue,
+  IdentifierSearchParams,
 } from "../types/dataLoad";
 import { normalizeHistoryFilters, queryKeys } from "./keys";
 import { withReadProvenance } from "./provenance";
@@ -16,6 +18,8 @@ const CATALOG_STALE_MS = 60_000;
 const CATALOG_GC_MS = 600_000;
 const HISTORY_STALE_MS = 30_000;
 const HISTORY_GC_MS = 600_000;
+const SEARCH_STALE_MS = 30_000;
+const SEARCH_GC_MS = 300_000;
 
 /** Cache options for the data-domain catalog. */
 export function domainsQueryOptions() {
@@ -80,6 +84,18 @@ export function historyDetailQueryOptions(entryId: string | undefined) {
   });
 }
 
+/** Cache options for one ephemeral identifier search. */
+export function identifierSearchQueryOptions(params: IdentifierSearchParams) {
+  return queryOptions({
+    queryKey: queryKeys.dataLoad.identifierSearch(params),
+    queryFn: ({ signal }) => fetchIdentifierSearch(params, signal),
+    staleTime: SEARCH_STALE_MS,
+    gcTime: SEARCH_GC_MS,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+}
+
 /** Reads the declared data domains through the shared cache. */
 export function useDomainsQuery() {
   return useQuery(domainsQueryOptions());
@@ -88,6 +104,17 @@ export function useDomainsQuery() {
 /** Reads the configured sources for one domain through the shared cache. */
 export function useSourcesQuery(domain: DataDomainId) {
   return useQuery(sourcesQueryOptions(domain));
+}
+
+/** Runs one identifier search, only when the caller has submitted it. */
+export function useIdentifierSearchQuery(
+  params: IdentifierSearchParams,
+  enabled: boolean,
+) {
+  return useQuery({
+    ...identifierSearchQueryOptions(params),
+    enabled,
+  });
 }
 
 /** Reads one history page through the shared cache. */

@@ -7,7 +7,12 @@ import { DataLoadPage } from "../DataLoadPage";
 import { renderWithQueryClient } from "../../query/testUtils";
 import { useDataLoadStore } from "../../store/dataLoadStore";
 import * as api from "../../api/dataLoad";
-import type { HistoryEntry, LoadReport } from "../../types/dataLoad";
+import type {
+  HistoryEntry,
+  IdentifierSearchResponse,
+  LoadReport,
+  SearchCandidate,
+} from "../../types/dataLoad";
 
 jest.mock("../../api/dataLoad", () => {
   const actual = jest.requireActual("../../api/dataLoad");
@@ -17,6 +22,7 @@ jest.mock("../../api/dataLoad", () => {
     fetchSources: jest.fn(),
     fetchHistory: jest.fn(),
     fetchHistoryDetail: jest.fn(),
+    fetchIdentifierSearch: jest.fn(),
     fetchProgress: jest.fn(),
     toggleSource: jest.fn(),
     loadOnce: jest.fn(),
@@ -114,6 +120,100 @@ function historyEntry(overrides: Partial<HistoryEntry> = {}): HistoryEntry {
   };
 }
 
+function searchCandidate(
+  overrides: Partial<SearchCandidate> = {},
+): SearchCandidate {
+  return {
+    symbol: "AAPL",
+    display_name: "Apple Inc.",
+    asset_type: "EQUITY",
+    exchange: "NMS",
+    venue_mic: "XNAS",
+    currency: "USD",
+    relevance: 0.9,
+    sources: [
+      {
+        source_id: "yahoo_finance",
+        display_name: "Yahoo Finance",
+        relevance: 0.9,
+      },
+    ],
+    identifiers: [
+      {
+        scheme: "TICKER:XNAS",
+        value: "AAPL",
+        label: "Ticker (XNAS)",
+        primary: true,
+        addable: true,
+        creatable: true,
+        reason: null,
+      },
+    ],
+    conflicts: [],
+    known: null,
+    addable: true,
+    not_addable_reason: null,
+    creatable: true,
+    creation_blocked_reason: null,
+    ...overrides,
+  };
+}
+
+function searchResponse(
+  overrides: Partial<IdentifierSearchResponse> = {},
+): IdentifierSearchResponse {
+  return {
+    query: "apple",
+    domain: "market_data",
+    outcome: "complete",
+    consulted_sources: ["yahoo_finance"],
+    sources: [
+      {
+        source_id: "yahoo_finance",
+        display_name: "Yahoo Finance",
+        status: "answered",
+        hit_count: 1,
+        error_code: null,
+        message: null,
+        retry_after_seconds: null,
+      },
+    ],
+    total: 1,
+    offset: 0,
+    limit: 25,
+    results: [searchCandidate()],
+    message: null,
+    ...overrides,
+  };
+}
+
+async function runSearch(
+  user: ReturnType<typeof userEvent.setup>,
+  text = "apple",
+) {
+  await user.type(
+    screen.getByLabelText("Search external identifiers"),
+    text,
+  );
+  await user.click(screen.getByRole("button", { name: "Search" }));
+  await screen.findAllByText("Apple Inc.");
+}
+
+function searchRegion() {
+  return within(screen.getByRole("region", { name: "Identifier search" }));
+}
+
+async function expandSearchResult(
+  user: ReturnType<typeof userEvent.setup>,
+  accessibleName = "AAPL on XNAS, EQUITY",
+) {
+  await user.click(
+    searchRegion().getByRole("button", {
+      name: `Show details for ${accessibleName}`,
+    }),
+  );
+}
+
 function renderPage(initialEntry = "/data-load") {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <MemoryRouter initialEntries={[initialEntry]}>{children}</MemoryRouter>
@@ -123,6 +223,7 @@ function renderPage(initialEntry = "/data-load") {
 
 beforeEach(() => {
   useDataLoadStore.getState().reset();
+  mocked.fetchIdentifierSearch.mockReset();
   mocked.fetchDomains.mockResolvedValue({
     domains: [
       {
@@ -710,6 +811,188 @@ describe("DataLoadPage continuations", () => {
   });
 });
 
+
+describe("DataLoadPage identifier search", () => {
+  it("adds a search result to the batch without changing unrelated draft fields", async () => {
+    const user = userEvent.setup();
+    mocked.fetchIdentifierSearch.mockResolvedValue(searchResponse());
+    renderPage();
+    const before = useDataLoadStore.getState().draft;
+
+    await runSearch(user);
+    await expandSearchResult(user);
+    await user.click(
+      searchRegion().getByRole("button", { name: /^Add TICKER:XNAS:AAPL/ }),
+    );
+
+    const draft = useDataLoadStore.getState().draft;
+    expect(draft.identifierText).toBe("TICKER:XNAS:AAPL");
+    expect(draft.identifiers).toEqual([
+      { scheme: "TICKER:XNAS", value: "AAPL" },
+    ]);
+    expect(
+      screen.getByRole("list", { name: "Parsed identifiers" }),
+    ).toHaveTextContent("TICKER:XNAS AAPL");
+    expect(draft.domain).toBe(before.domain);
+    expect(draft.mode).toBe(before.mode);
+    expect(draft.date).toBe(before.date);
+    expect(draft.from).toBe(before.from);
+    expect(draft.to).toBe(before.to);
+    expect(draft.sourceId).toBe(before.sourceId);
+    expect(draft.createMissingAssets).toBe(before.createMissingAssets);
+  });
+
+  it("adds the venue the operator chose for a same-symbol result", async () => {
+    const user = userEvent.setup();
+    mocked.fetchIdentifierSearch.mockResolvedValue(
+      searchResponse({
+        total: 2,
+        results: [
+          searchCandidate(),
+          searchCandidate({
+            exchange: "NYQ",
+            venue_mic: "XNYS",
+            identifiers: [
+              {
+                scheme: "TICKER:XNYS",
+                value: "AAPL",
+                label: "Ticker (XNYS)",
+                primary: true,
+                addable: true,
+                creatable: true,
+                reason: null,
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+    renderPage();
+
+    await runSearch(user);
+    await expandSearchResult(user, "AAPL on XNYS, EQUITY");
+    await user.click(
+      searchRegion().getByRole("button", {
+        name: "Add TICKER:XNYS:AAPL for AAPL on XNYS, EQUITY",
+      }),
+    );
+
+    expect(useDataLoadStore.getState().draft.identifiers).toEqual([
+      { scheme: "TICKER:XNYS", value: "AAPL" },
+    ]);
+  });
+
+  it("enables creation from a new result and keeps the report across a later search", async () => {
+    const user = userEvent.setup();
+    mocked.fetchIdentifierSearch.mockResolvedValue(searchResponse());
+    renderPage();
+
+    await runSearch(user);
+    await expandSearchResult(user);
+    const search = searchRegion();
+    const create = search.getByLabelText(
+      "Create missing assets when a ticker-style identifier resolves to none",
+    );
+    expect(create).not.toBeChecked();
+    await user.click(create);
+    expect(useDataLoadStore.getState().draft.createMissingAssets).toBe(true);
+
+    await user.click(
+      search.getByRole("button", { name: /^Add TICKER:XNAS:AAPL/ }),
+    );
+    await user.click(screen.getByRole("button", { name: "Load" }));
+
+    await waitFor(() => expect(mocked.loadOnce).toHaveBeenCalledTimes(1));
+    expect(mocked.loadOnce.mock.calls[0][0].create_missing_assets).toBe(true);
+    expect(
+      await screen.findByRole("region", { name: "Load report" }),
+    ).toBeInTheDocument();
+
+    mocked.fetchIdentifierSearch.mockResolvedValue(
+      searchResponse({
+        query: "micro",
+        results: [
+          searchCandidate({
+            symbol: "MSFT",
+            display_name: "Microsoft",
+            identifiers: [
+              {
+                scheme: "TICKER:XNAS",
+                value: "MSFT",
+                label: "Ticker (XNAS)",
+                primary: true,
+                addable: true,
+                creatable: true,
+                reason: null,
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+    const input = screen.getByLabelText("Search external identifiers");
+    await user.clear(input);
+    await user.type(input, "micro");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+
+    expect(await screen.findByText("Microsoft")).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "Load report" }),
+    ).toBeInTheDocument();
+  });
+
+  it("preserves the draft and a completed report when a search fails", async () => {
+    const user = userEvent.setup();
+    useDataLoadStore.getState().setDraft({
+      identifierText: "TICKER:XNAS:AAPL",
+      identifiers: [{ scheme: "TICKER:XNAS", value: "AAPL" }],
+      sourceId: "yahoo_finance",
+    });
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Load" }));
+    expect(
+      await screen.findByRole("region", { name: "Load report" }),
+    ).toBeInTheDocument();
+
+    const draftBefore = useDataLoadStore.getState().draft;
+    const reportBefore = useDataLoadStore.getState().lastReport;
+
+    mocked.fetchIdentifierSearch.mockResolvedValue(
+      searchResponse({
+        outcome: "failed",
+        total: 0,
+        results: [],
+        sources: [
+          {
+            source_id: "yahoo_finance",
+            display_name: "Yahoo Finance",
+            status: "unavailable",
+            hit_count: 0,
+            error_code: "unavailable",
+            message: "The source could not be searched.",
+            retry_after_seconds: null,
+          },
+        ],
+        message:
+          "Every consulted source failed. Try again or check the source catalog.",
+      }),
+    );
+    await user.type(
+      screen.getByLabelText("Search external identifiers"),
+      "apple",
+    );
+    await user.click(screen.getByRole("button", { name: "Search" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Every consulted source failed.",
+    );
+    expect(useDataLoadStore.getState().draft).toEqual(draftBefore);
+    expect(useDataLoadStore.getState().lastReport).toBe(reportBefore);
+    expect(
+      screen.getByRole("region", { name: "Load report" }),
+    ).toBeInTheDocument();
+  });
+});
 
 describe("DataLoadPage accessibility", () => {
   it("has no serious axe violations on the idle page", async () => {

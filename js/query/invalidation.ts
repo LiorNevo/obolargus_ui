@@ -49,6 +49,9 @@ export async function invalidateAfterSourceToggle(
     client.invalidateQueries({
       queryKey: queryKeys.dataLoad.allHistory(),
     }),
+    client.invalidateQueries({
+      queryKey: queryKeys.dataLoad.allIdentifierSearches(),
+    }),
   ]);
 }
 
@@ -83,6 +86,9 @@ export async function invalidateAfterLoad(
   if (assetsCreatedOrAdopted(input.report) > 0) {
     tasks.push(
       client.invalidateQueries({ queryKey: queryKeys.assets.allSearches() }),
+      client.invalidateQueries({
+        queryKey: queryKeys.dataLoad.allIdentifierSearches(),
+      }),
     );
   }
 
