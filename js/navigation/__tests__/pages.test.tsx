@@ -7,6 +7,10 @@ const USER_FACING_IDS = [
   "dashboard",
   "data-load",
   "semantic-layer",
+  "automation",
+  "automation-flow",
+  "automation-runs",
+  "automation-run",
   "portfolios",
   "analysis",
   "rules",
@@ -29,6 +33,26 @@ const EXPECTED_PAGES: Record<
   },
   "semantic-layer": {
     label: "Semantic Layer",
+    permission: "workspace:view",
+    availability: "available",
+  },
+  automation: {
+    label: "Automation",
+    permission: "workspace:view",
+    availability: "available",
+  },
+  "automation-flow": {
+    label: "Flow editor",
+    permission: "workspace:view",
+    availability: "available",
+  },
+  "automation-runs": {
+    label: "Automation runs",
+    permission: "workspace:view",
+    availability: "available",
+  },
+  "automation-run": {
+    label: "Run detail",
     permission: "workspace:view",
     availability: "available",
   },
@@ -104,7 +128,10 @@ describe("financial page registry", () => {
       UI_ACCESS_CONTEXT,
     );
 
-    expect(entries.map((entry) => entry.id)).toEqual([...USER_FACING_IDS]);
+    const expectedNavigation = USER_FACING_IDS.filter(
+      (id) => id !== "automation-flow" && id !== "automation-run",
+    );
+    expect(entries.map((entry) => entry.id)).toEqual([...expectedNavigation]);
     expect(entries.map((entry) => entry.path)).toContain("/");
     expect(entries.map((entry) => entry.label)).not.toContain("Home");
   });

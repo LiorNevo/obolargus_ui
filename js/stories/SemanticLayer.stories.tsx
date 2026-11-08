@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import type { ComponentType } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { createQueryClient } from "../query/client";
@@ -39,7 +40,7 @@ const meta = {
     },
   },
   decorators: [
-    (Story) => (
+    (Story: ComponentType) => (
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={["/semantic-layer"]}>
           <Story />

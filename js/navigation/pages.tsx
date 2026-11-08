@@ -9,6 +9,16 @@ import { TestPage } from "../components/TestPage";
 const LazyDashboardPage = lazy(() => import("../pages/DashboardPage"));
 const LazyDataLoadPage = lazy(() => import("../pages/DataLoadPage"));
 const LazySemanticLayerPage = lazy(() => import("../pages/SemanticLayerPage"));
+const LazyAutomationListPage = lazy(
+  () => import("../pages/automation/AutomationListPage"),
+);
+const LazyFlowEditorPage = lazy(
+  () => import("../pages/automation/FlowEditorPage"),
+);
+const LazyRunListPage = lazy(() => import("../pages/automation/RunListPage"));
+const LazyRunDetailPage = lazy(
+  () => import("../pages/automation/RunDetailPage"),
+);
 
 function suspense(element: ReactNode): ReactNode {
   return (
@@ -69,6 +79,50 @@ export const PAGES: PageDefinition[] = [
     availability: "available",
     showInNavigation: true,
     element: suspense(<LazySemanticLayerPage />),
+  },
+  {
+    id: "automation",
+    path: "/automation",
+    label: "Automation",
+    title: "Automation",
+    visibility: "restricted",
+    requiredPermission: "workspace:view",
+    availability: "available",
+    showInNavigation: true,
+    element: suspense(<LazyAutomationListPage />),
+  },
+  {
+    id: "automation-flow",
+    path: "/automation/flows/:flowId",
+    label: "Flow editor",
+    title: "Flow editor",
+    visibility: "restricted",
+    requiredPermission: "workspace:view",
+    availability: "available",
+    showInNavigation: false,
+    element: suspense(<LazyFlowEditorPage />),
+  },
+  {
+    id: "automation-runs",
+    path: "/automation/runs",
+    label: "Automation runs",
+    title: "Automation runs",
+    visibility: "restricted",
+    requiredPermission: "workspace:view",
+    availability: "available",
+    showInNavigation: true,
+    element: suspense(<LazyRunListPage />),
+  },
+  {
+    id: "automation-run",
+    path: "/automation/runs/:runId",
+    label: "Run detail",
+    title: "Run detail",
+    visibility: "restricted",
+    requiredPermission: "workspace:view",
+    availability: "available",
+    showInNavigation: false,
+    element: suspense(<LazyRunDetailPage />),
   },
   {
     id: "portfolios",

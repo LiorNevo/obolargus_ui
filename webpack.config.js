@@ -7,6 +7,27 @@ const CopyPlugin = require("copy-webpack-plugin");
 const { InjectManifest } = require("workbox-webpack-plugin");
 const { generateThemeCss } = require("./scripts/theme-css");
 
+// TypeScript 7 is the native compiler; ts-loader 9 needs the JavaScript
+// compiler API. Resolve the TypeScript 6 build that pnpm also installs.
+function resolveTypeScriptCompiler() {
+  const store = path.join(__dirname, "node_modules", ".pnpm");
+  try {
+    const candidate = require("fs")
+      .readdirSync(store)
+      .filter((entry) => /^typescript@6\./.test(entry))
+      .sort()
+      .pop();
+    if (candidate) {
+      return path.join(store, candidate, "node_modules", "typescript");
+    }
+  } catch {
+    // Fall back to the workspace compiler.
+  }
+  return "typescript";
+}
+const typeScriptCompiler = resolveTypeScriptCompiler();
+
+
 // Resolve the installed lx_client source through its pnpm symlink so ts-loader
 // can transpile the TypeScript modules the app deep-imports.
 const lxClientSource = realpathSync(
@@ -20,6 +41,11 @@ const reactRouterDomDir = realpathSync(
 );
 const reactRouterDir = path.resolve(reactRouterDomDir, "..", "react-router");
 
+const basePath = normalizePath(
+  process.env.OBOLARGUS_BASE_PATH || process.env.BASE_PATH,
+  "/obolargus",
+);
+
 // The generated theme registry stores component CSS in JS strings. Emit it as
 // a real stylesheet so the entrypoint only carries application code.
 const themeCssPath = path.resolve(
@@ -28,6 +54,7 @@ const themeCssPath = path.resolve(
 );
 const themeCss = generateThemeCss(
   path.resolve(__dirname, "../lx_client/js/generated/themeRegistry.ts"),
+  { basePath },
 );
 require("fs").mkdirSync(path.dirname(themeCssPath), { recursive: true });
 require("fs").writeFileSync(themeCssPath, themeCss.css);
@@ -55,10 +82,6 @@ function readGitCommit() {
 module.exports = (env = {}, argv = {}) => {
   const mode = argv.mode || env.mode || "development";
   const isProduction = mode === "production";
-  const basePath = normalizePath(
-    process.env.OBOLARGUS_BASE_PATH || process.env.BASE_PATH,
-    "/obolargus",
-  );
   const apiBaseUrl = normalizePath(
     process.env.OBOLARGUS_API_BASE_URL || process.env.API_BASE_URL,
     `${basePath}/api`,
@@ -146,7 +169,10 @@ module.exports = (env = {}, argv = {}) => {
           include: [path.resolve(__dirname, "js/service-worker")],
           use: {
             loader: "ts-loader",
-            options: { configFile: path.resolve(__dirname, "tsconfig.sw.json") },
+            options: {
+              compiler: typeScriptCompiler,
+              configFile: path.resolve(__dirname, "tsconfig.sw.json"),
+            },
           },
         },
         {
@@ -154,12 +180,19 @@ module.exports = (env = {}, argv = {}) => {
           exclude: [path.resolve(__dirname, "js/service-worker")],
           use: {
             loader: "ts-loader",
-            options: { allowTsInNodeModules: true },
+            options: {
+              compiler: typeScriptCompiler,
+              allowTsInNodeModules: true,
+            },
           },
           include: [path.resolve(__dirname, "js"), lxClientSource],
         },
         // `lx_client` components inline SVG source via `require`, so expose the
         // package's image files as raw strings (and other assets as URLs).
+        {
+          test: /\.css$/,
+          use: ["style-loader", "css-loader"],
+        },
         {
           test: /\.svg$/,
           include: [lxClientSource],
@@ -180,7 +213,18 @@ module.exports = (env = {}, argv = {}) => {
       // client router can resolve the path from the URL.
       historyApiFallback: true,
       client: {
-        overlay: true,
+        // React Flow observes its container while nodes are added. Chromium can
+        // emit a benign "ResizeObserver loop completed with undelivered
+        // notifications" warning during that layout pass; do not turn it into
+        // a blocking development overlay.
+        overlay: {
+          errors: true,
+          warnings: true,
+          runtimeErrors: (error) =>
+            !/ResizeObserver loop (completed with undelivered notifications|limit exceeded)/i.test(
+              String(error && error.message ? error.message : error),
+            ),
+        },
         // Reach HMR through the gateway mount instead of the dev-server
         // port (8081 is not exposed externally). A port of 0 tells the
         // client to reuse the page's own host/port, so this resolves to

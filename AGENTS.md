@@ -104,3 +104,13 @@ Operational rules for contributors and AI agents working in this app.
 - Verify PWA output: `pnpm verify:pwa`
 - Serve the production build locally: `pnpm serve:prod`
 - Storybook: `pnpm storybook`
+
+## Automation pages (spec 030)
+
+- `js/pages/automation/` composes the reusable
+  `lx_client/js/components/FlowEditor` and the SchemaForm adapters in
+  `DataLoadNodeFields.tsx`.
+- Reads go through `js/query/automationQueries.ts`; writes go through
+  `js/query/mutations.ts`. Add keys only in `js/query/keys.ts`.
+- The editor is a controlled component: keep the draft document in the page,
+  persist through mutations, and guard dirty state on navigation and unload.

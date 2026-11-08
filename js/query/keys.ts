@@ -59,8 +59,7 @@ export const queryKeys = {
   },
 
   dataLoad: {
-    domains: () => ["data-load", "domains"] as const,
-    sources: (domain: string | null) =>
+    domains: () => ["data-load", "domains"] as const,    sources: (domain: string | null) =>
       ["data-load", "sources", domain] as const,
     allSources: () => ["data-load", "sources"] as const,
     identifierSearch: (params: IdentifierSearchParams) =>
@@ -85,5 +84,44 @@ export const queryKeys = {
     progress: (groupId: string) =>
       ["data-load", "progress", groupId] as const,
     allProgress: () => ["data-load", "progress"] as const,
+  },
+
+  automation: {
+    nodeTypes: () => ["automation", "node-types"] as const,
+    templates: () => ["automation", "templates"] as const,
+    template: (templateId: string) =>
+      ["automation", "templates", templateId] as const,
+    flowList: (filters: {
+      status?: string;
+      search?: string;
+      limit: number;
+      offset: number;
+    }) => ["automation", "flows", "list", filters] as const,
+    allFlowLists: () => ["automation", "flows", "list"] as const,
+    flow: (flowId: string) => ["automation", "flows", "detail", flowId] as const,
+    allFlows: () => ["automation", "flows"] as const,
+    versions: (flowId: string) =>
+      ["automation", "flows", flowId, "versions"] as const,
+    version: (flowId: string, versionNumber: number) =>
+      ["automation", "flows", flowId, "versions", versionNumber] as const,
+    audit: (flowId: string) => ["automation", "flows", flowId, "audit"] as const,
+    context: (flowId: string) =>
+      ["automation", "flows", flowId, "context"] as const,
+    triggers: (flowId: string) =>
+      ["automation", "flows", flowId, "triggers"] as const,
+    runList: (filters: {
+      flow_id?: string;
+      status?: string;
+      trigger_kind?: string;
+      limit: number;
+      offset: number;
+    }) => ["automation", "runs", "list", filters] as const,
+    allRunLists: () => ["automation", "runs", "list"] as const,
+    run: (runId: string) => ["automation", "runs", "detail", runId] as const,
+    runMessages: (runId: string, nodeId?: string) =>
+      ["automation", "runs", runId, "messages", nodeId ?? null] as const,
+    runLogs: (runId: string) => ["automation", "runs", runId, "logs"] as const,
+    runNode: (runId: string, nodeId: string) =>
+      ["automation", "runs", runId, "nodes", nodeId] as const,
   },
 };

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import type { ComponentType } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { DashboardPage } from "../DashboardPage";
 
@@ -10,7 +11,7 @@ const meta = {
   title: "Pages/Dashboard",
   component: DashboardPage,
   decorators: [
-    (Story) => (
+    (Story: ComponentType) => (
       <MemoryRouter>
         <Story />
       </MemoryRouter>

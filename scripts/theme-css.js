@@ -6,9 +6,38 @@
  * JS parse while keeping the exact same styles.
  */
 const fs = require("fs");
-const ts = require("typescript");
+const path = require("path");
 
-function generateThemeCss(sourcePath) {
+// TypeScript 7 is the native compiler and does not expose the JavaScript
+// compiler API (ModuleKind/ScriptTarget/transpileModule). The workspace also
+// contains a JavaScript TypeScript 6 build, which this script uses.
+function loadTypeScript() {
+  const store = path.join(__dirname, "..", "node_modules", ".pnpm");
+  try {
+    const candidate = fs
+      .readdirSync(store)
+      .filter((entry) => /^typescript@6\./.test(entry))
+      .sort()
+      .pop();
+    if (candidate) {
+      return require(path.join(store, candidate, "node_modules", "typescript"));
+    }
+  } catch {
+    // Fall through to the workspace resolution.
+  }
+  const fallback = require("typescript");
+  if (!fallback.ModuleKind) {
+    throw new Error(
+      "theme-css requires the JavaScript TypeScript 6 compiler API; " +
+        "install typescript@6 alongside the native TypeScript 7 compiler",
+    );
+  }
+  return fallback;
+}
+
+const ts = loadTypeScript();
+
+function generateThemeCss(sourcePath, options = {}) {
   const source = fs.readFileSync(sourcePath, "utf8");
   const output = ts.transpileModule(source, {
     compilerOptions: {
@@ -28,9 +57,15 @@ function generateThemeCss(sourcePath) {
     );
   }
 
+  const basePath = (options.basePath ?? "").replace(/\/+$/, "");
   const css = THEME_IDS.map(
     (themeId) => COMPILED_THEMES[themeId]?.css ?? "",
-  ).join("\n");
+  )
+    .join("\n")
+    // Cursor images live under `<basePath>/cursor`. Absolute URLs keep them
+    // resolvable even when the stylesheet is injected inline on a deep route.
+    .replace(/url\("cursor\//g, `url("${basePath}/cursor/`)
+    .replace(/url\('cursor\//g, `url('${basePath}/cursor/`);
   return { css, themeIds: THEME_IDS };
 }
 
