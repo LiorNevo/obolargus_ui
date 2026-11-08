@@ -1,0 +1,498 @@
+/* Semantic Layer explorer. Tokens come from the active lx_client theme. */
+
+.obolargus_semantic_page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
+}
+
+.obolargus_semantic_page *,
+.obolargus_semantic_page *::before,
+.obolargus_semantic_page *::after {
+  box-sizing: border-box;
+}
+
+.obolargus_semantic_header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.obolargus_semantic_header_text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.obolargus_semantic_header_text h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.obolargus_semantic_header_text p {
+  margin: 0;
+  color: var(--accent-muted);
+}
+
+.obolargus_semantic_versions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.obolargus_semantic_header_actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.obolargus_semantic_body {
+  display: grid;
+  grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+  min-width: 0;
+}
+
+.obolargus_semantic_sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border);
+  background: color-mix(in srgb, var(--border) 16%, var(--bg) 84%);
+}
+
+.obolargus_semantic_detail_region {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--border);
+  background: color-mix(in srgb, var(--border) 10%, var(--bg) 90%);
+}
+
+.obolargus_semantic_search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.obolargus_semantic_filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.obolargus_semantic_filters .obolargus_form_field {
+  display: flex;
+  flex: 1 1 9rem;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.obolargus_semantic_filters label {
+  font-size: var(--font-size-small);
+  font-weight: 500;
+  color: var(--accent-muted);
+}
+
+.obolargus_semantic_filters select {
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--border-radius);
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+}
+
+.obolargus_semantic_inventory {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  max-height: 70vh;
+  overflow: auto;
+  padding-right: var(--space-1);
+}
+
+.obolargus_semantic_inventory h2 {
+  margin: 0 0 var(--space-1);
+  font-size: 1rem;
+}
+
+.obolargus_semantic_inventory ul,
+.obolargus_semantic_system ul,
+.obolargus_semantic_system ol,
+.obolargus_semantic_detail ul,
+.obolargus_semantic_detail ol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-4);
+}
+
+.obolargus_semantic_inventory a,
+.obolargus_semantic_detail a,
+.obolargus_semantic_system a {
+  color: var(--link, var(--accent));
+}
+
+.obolargus_semantic_inventory a[aria-current="true"] {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.obolargus_semantic_count {
+  color: var(--accent-muted);
+  font-weight: 400;
+}
+
+.obolargus_semantic_muted {
+  color: var(--accent-muted);
+  font-size: var(--font-size-small);
+}
+
+.obolargus_semantic_badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--border);
+  border-radius: 999px;
+  color: var(--accent-muted);
+  font-size: var(--font-size-small);
+  line-height: 1;
+}
+
+.obolargus_semantic_alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--error);
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+  color: var(--error);
+}
+
+.obolargus_semantic_alert p {
+  margin: 0;
+}
+
+.obolargus_semantic_empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: var(--border-width) dashed var(--border);
+}
+
+.obolargus_semantic_empty h2,
+.obolargus_semantic_empty p {
+  margin: 0;
+}
+
+.obolargus_semantic_section_header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.obolargus_semantic_section_header h2,
+.obolargus_semantic_section_header h3 {
+  margin: 0;
+}
+
+.obolargus_semantic_section_header p {
+  margin: 0;
+  color: var(--accent-muted);
+}
+
+.obolargus_semantic_section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.obolargus_semantic_section h3,
+.obolargus_semantic_section h4 {
+  margin: 0;
+}
+
+.obolargus_semantic_section p {
+  margin: 0;
+}
+
+.obolargus_semantic_metadata,
+.obolargus_semantic_counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+
+.obolargus_semantic_metadata div,
+.obolargus_semantic_counts div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.obolargus_semantic_metadata dt,
+.obolargus_semantic_counts dt {
+  color: var(--accent-muted);
+  font-size: var(--font-size-small);
+}
+
+.obolargus_semantic_metadata dd,
+.obolargus_semantic_counts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.obolargus_semantic_counts dd {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.obolargus_semantic_group_grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-3);
+}
+
+.obolargus_semantic_group_card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border);
+  background: color-mix(in srgb, var(--border) 12%, var(--bg) 88%);
+}
+
+.obolargus_semantic_group_card h3 {
+  margin: 0;
+}
+
+.obolargus_semantic_group_card p {
+  margin: 0;
+}
+
+.obolargus_semantic_group_card ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-4);
+}
+
+.obolargus_semantic_breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  color: var(--accent-muted);
+  font-size: var(--font-size-small);
+}
+
+.obolargus_semantic_detail h2 {
+  margin: 0;
+}
+
+.obolargus_semantic_detail h2:focus-visible {
+  outline: var(--focus-width, 2px) solid var(--focus, var(--accent));
+  outline-offset: 2px;
+}
+
+.obolargus_semantic_detail p {
+  margin: 0;
+}
+
+.obolargus_semantic_tabs {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: var(--border-width) solid var(--border);
+}
+
+.obolargus_semantic_tabs [role="tab"] {
+  min-height: var(--action-size);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--accent-muted);
+  font: inherit;
+  cursor: var(--cursor-pointer, pointer);
+}
+
+.obolargus_semantic_tabs [role="tab"][aria-selected="true"] {
+  border-bottom-color: var(--accent);
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.obolargus_semantic_tabs [role="tab"]:focus-visible {
+  outline: var(--focus-width, 2px) solid var(--focus, var(--accent));
+  outline-offset: 2px;
+}
+
+.obolargus_semantic_field_table {
+  width: 100%;
+  min-width: 0;
+}
+
+.obolargus_semantic_field_name {
+  display: block;
+}
+
+.obolargus_semantic_field_description {
+  display: block;
+  color: var(--accent-muted);
+  font-weight: 400;
+}
+
+.obolargus_semantic_inline_list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.obolargus_semantic_relationship_columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-3);
+}
+
+.obolargus_semantic_relationship_columns h4 {
+  margin: 0 0 var(--space-1);
+}
+
+.obolargus_semantic_relationship_label {
+  font-weight: 600;
+}
+
+.obolargus_semantic_relationship_groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-3);
+}
+
+.obolargus_semantic_relationship_groups h4 {
+  margin: 0 0 var(--space-1);
+}
+
+.obolargus_semantic_constraint_list li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.obolargus_semantic_raw {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.obolargus_semantic_raw_header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.obolargus_semantic_raw h3 {
+  margin: 0;
+}
+
+.obolargus_semantic_raw pre {
+  max-height: 60vh;
+  margin: 0;
+  overflow: auto;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border);
+  background: var(--bg);
+  font-size: var(--font-size-small);
+  white-space: pre;
+}
+
+.obolargus_semantic_raw code {
+  white-space: pre;
+}
+
+.obolargus_semantic_result_list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.obolargus_semantic_result_list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--space-1) 0;
+  border-bottom: var(--border-width) solid var(--border);
+}
+
+.obolargus_semantic_result_list a {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.obolargus_semantic_result_name {
+  font-weight: 600;
+}
+
+.obolargus_semantic_result_context {
+  color: var(--accent-muted);
+  font-size: var(--font-size-small);
+}
+
+.obolargus_semantic_actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.obolargus_semantic_actions [role="status"] {
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .obolargus_semantic_body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .obolargus_semantic_inventory {
+    max-height: 24rem;
+  }
+}

@@ -7,6 +7,7 @@ import { UI_ACCESS_CONTEXT } from "../access";
 import { AppLayout } from "../AppLayout";
 import { PAGES } from "../pages";
 import { renderWithQueryClient } from "../../query/testUtils";
+import { semanticDictionaryResponse } from "../../pages/semantic-layer/__fixtures__/semanticDictionary";
 
 const NESTED_PAGE: PageDefinition = {
   id: "holdings",
@@ -99,5 +100,27 @@ describe("URL-driven routing", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "Portfolios" }),
     ).toBeInTheDocument();
+  });
+
+  it("renders the Semantic Layer page directly from its URL", async () => {
+    const fetchMock = jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(semanticDictionaryResponse());
+    renderRoute("/semantic-layer");
+
+    expect(
+      await screen.findByRole(
+        "heading",
+        { level: 1, name: "Semantic Layer" },
+        { timeout: 5_000 },
+      ),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Dictionary contents", undefined, {
+        timeout: 5_000,
+      }),
+    ).toBeInTheDocument();
+
+    fetchMock.mockRestore();
   });
 });

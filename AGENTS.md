@@ -5,6 +5,10 @@ Operational rules for contributors and AI agents working in this app.
 ## Conventions
 
 - TypeScript strict mode; no `any` except where unavoidable and justified.
+- Use `lx_client` components whenever an equivalent exists. Do not reimplement
+  tables, buttons, inputs, selects, dialogs, navigation, icons, loading states,
+  skeletons, or other shared primitives in `obolargus_ui`; add missing
+  components to `lx_client` and consume them from there.
 - Styles and views layer onto `lx_client` (declared as a `file:` dep). Real
   application components may deep-import `lx_client/js/...` (matching the
   existing docs-runner usage); placeholder-only components must not import from

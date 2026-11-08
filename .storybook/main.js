@@ -17,9 +17,10 @@ module.exports = {
   ],
   framework: "@storybook/react-webpack5",
   staticDirs: [],
+  typescript: { reactDocgen: false },
   webpackFinal: async (config) => {
     config.module.rules.push({
-      test: /\.tsx$/,
+      test: /\.tsx?$/,
       use: {
         loader: "ts-loader",
         options: { allowTsInNodeModules: true },

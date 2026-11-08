@@ -8,6 +8,7 @@ import { TestPage } from "../components/TestPage";
 // render navigation before a page chunk is requested.
 const LazyDashboardPage = lazy(() => import("../pages/DashboardPage"));
 const LazyDataLoadPage = lazy(() => import("../pages/DataLoadPage"));
+const LazySemanticLayerPage = lazy(() => import("../pages/SemanticLayerPage"));
 
 function suspense(element: ReactNode): ReactNode {
   return (
@@ -57,6 +58,17 @@ export const PAGES: PageDefinition[] = [
     availability: "available",
     showInNavigation: true,
     element: suspense(<LazyDataLoadPage />),
+  },
+  {
+    id: "semantic-layer",
+    path: "/semantic-layer",
+    label: "Semantic Layer",
+    title: "Semantic Layer",
+    visibility: "restricted",
+    requiredPermission: "workspace:view",
+    availability: "available",
+    showInNavigation: true,
+    element: suspense(<LazySemanticLayerPage />),
   },
   {
     id: "portfolios",

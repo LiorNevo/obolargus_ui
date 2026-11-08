@@ -6,6 +6,7 @@ import { PAGES } from "../pages";
 const USER_FACING_IDS = [
   "dashboard",
   "data-load",
+  "semantic-layer",
   "portfolios",
   "analysis",
   "rules",
@@ -23,6 +24,11 @@ const EXPECTED_PAGES: Record<
   },
   "data-load": {
     label: "Data Load",
+    permission: "workspace:view",
+    availability: "available",
+  },
+  "semantic-layer": {
+    label: "Semantic Layer",
     permission: "workspace:view",
     availability: "available",
   },
@@ -53,7 +59,7 @@ function userFacingPages(): PageDefinition[] {
 }
 
 describe("financial page registry", () => {
-  it("makes the dashboard the root page and keeps the four placeholders", () => {
+  it("makes the dashboard the root page and keeps the registered placeholders", () => {
     const root = PAGES.find((page) => page.path === "/");
     expect(root?.id).toBe("dashboard");
     expect(userFacingPages().map((page) => page.id)).toEqual([
@@ -79,7 +85,7 @@ describe("financial page registry", () => {
     }
   });
 
-  it("keeps Data Load and Dashboard available and four placeholders unavailable", () => {
+  it("keeps the implemented pages available and the four placeholders unavailable", () => {
     for (const page of userFacingPages()) {
       if (page.id === "dashboard-redirect") {
         expect(page.availability).toBe("available");
@@ -93,7 +99,7 @@ describe("financial page registry", () => {
     }
   });
 
-  it("derives navigation entries for all six user-facing pages", () => {
+  it("derives navigation entries for every user-facing page", () => {
     const entries = createPageRegistry(PAGES).getNavigationEntries(
       UI_ACCESS_CONTEXT,
     );

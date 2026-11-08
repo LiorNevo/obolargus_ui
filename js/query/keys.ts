@@ -41,6 +41,10 @@ export function normalizeSearchQuery(query: string): string {
 export const queryKeys = {
   health: () => ["health"] as const,
 
+  semanticLayer: {
+    document: () => ["semantic-layer", "document"] as const,
+  },
+
   assets: {
     search: (query: string, limit: number) =>
       ["assets", "search", { query, limit }] as const,
