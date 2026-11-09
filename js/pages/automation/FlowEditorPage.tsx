@@ -2,22 +2,40 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { usePageTitle } from "lx_client/js/navigation/usePageTitle";
 import { Button } from "lx_client/js/components/Button";
+import { Modal } from "lx_client/js/components/Modal";
 import { Skeleton } from "lx_client/js/components/Skeleton";
+import TabPanel from "lx_client/js/components/TabPanel";
+import {
+  Toast,
+  ToastRegion,
+  type ToastTone,
+} from "lx_client/js/components/Toast";
 import {
   FlowEditor,
   cloneValue,
   emptyFlow,
+  findFreePosition,
+  normalizeFlowDocument,
+  validateLocal,
   type FlowDocument,
+  type FlowDebugEvent,
   type FlowEditorApi,
   type FlowMarker,
   type FlowSelection,
   type FlowNode,
+  type FlowWorkspaceTab,
+  type NodeTypeDescriptor,
   type Wire,
 } from "lx_client/js/components/FlowEditor";
 import type { ValidationView } from "../../types/automation";
+import { AutomationApiError } from "../../api/automation";
 import {
   useFlowQuery,
+  useFlowsQuery,
   useNodeTypesQuery,
+  useRunEvents,
+  useRunLogsQuery,
+  useRunQuery,
 } from "../../query/automationQueries";
 import {
   usePublishFlowMutation,
@@ -33,10 +51,28 @@ import { VersionPanel } from "./VersionPanel";
 import { errorMessage, formatInstant } from "./shared";
 import "./automation.css";
 
+type PanelId =
+  | "details"
+  | "versions"
+  | "triggers"
+  | "context"
+  | "audit"
+  | "subflows";
 
-type PanelId = "details" | "versions" | "triggers" | "context" | "audit";
+type Notice = {
+  message: string;
+  tone: ToastTone;
+};
 
-const STRUCTURAL_TYPES = [
+const TERMINAL_RUN_STATUSES = new Set([
+  "succeeded",
+  "partial",
+  "failed",
+  "cancelled",
+  "interrupted",
+]);
+
+const STRUCTURAL_TYPES: NodeTypeDescriptor[] = [
   {
     id: "subflow_input",
     version: 1,
@@ -48,7 +84,8 @@ const STRUCTURAL_TYPES = [
     config_schema: { type: "object", properties: {} },
     capabilities: [],
     deprecated: false,
-    docs: "Receives the instance message.",
+    docs:
+      "Receives the instance message when a subflow is invoked.\n\nConnect it to the first node in the subflow.",
   },
   {
     id: "subflow_output",
@@ -62,7 +99,8 @@ const STRUCTURAL_TYPES = [
     config_schema: { type: "object", properties: {} },
     capabilities: [],
     deprecated: false,
-    docs: "Forwards a message to the subflow instance output.",
+    docs:
+      "Forwards a message to the subflow instance output.\n\nConnect nodes here to return a message to the caller.",
   },
 ];
 
@@ -72,6 +110,7 @@ const PANELS: Array<{ id: PanelId; label: string }> = [
   { id: "triggers", label: "Triggers" },
   { id: "context", label: "Context" },
   { id: "audit", label: "Audit" },
+  { id: "subflows", label: "Subflows" },
 ];
 
 function toMarkers(validation: ValidationView): FlowMarker[] {
@@ -190,7 +229,12 @@ function createSubflowFromSelection(
         ...document.nodes.filter((node) => !selected.has(node.id)),
         instance,
       ],
-      wires: [...document.wires.filter((wire) => !nodeIds.has(wire.source) && !nodeIds.has(wire.target)), ...wires],
+      wires: [
+        ...document.wires.filter(
+          (wire) => !nodeIds.has(wire.source) && !nodeIds.has(wire.target),
+        ),
+        ...wires,
+      ],
       subflows: [
         ...document.subflows,
         {
@@ -230,12 +274,14 @@ export default function FlowEditorPage() {
   const { flowId } = useParams<{ flowId: string }>();
   const navigate = useNavigate();
   const flowQuery = useFlowQuery(flowId);
+  const flowsQuery = useFlowsQuery({ limit: 200, offset: 0 });
   const nodeTypes = useNodeTypesQuery();
   const saveDraft = useSaveDraftMutation(flowId ?? "");
   const validate = useValidateFlowMutation(flowId ?? "");
   const publish = usePublishFlowMutation(flowId ?? "");
   const startRun = useStartRunMutation(flowId ?? "");
   const editor = useRef<FlowEditorApi>(null);
+  const hydratedFlowId = useRef<string | null>(null);
 
   const [document, setDocument] = useState<FlowDocument | null>(null);
   const [revision, setRevision] = useState<number | null>(null);
@@ -248,10 +294,26 @@ export default function FlowEditorPage() {
   const [panel, setPanel] = useState<PanelId>("details");
   const [changeNote, setChangeNote] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [publishedVersion, setPublishedVersion] = useState<number | null>(null);
   const [runInputs, setRunInputs] = useState("{}");
   const [editingSubflow, setEditingSubflow] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [runOpen, setRunOpen] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+  const [runningNodeId, setRunningNodeId] = useState<string | null>(null);
+  const [runFromNodeId, setRunFromNodeId] = useState<string | null>(null);
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const notifiedRun = useRef<string | null>(null);
+  const activeRun = useRunQuery(activeRunId ?? undefined);
+  const runLogs = useRunLogsQuery(activeRunId ?? undefined);
+  const runTerminal = Boolean(
+    activeRun.data && TERMINAL_RUN_STATUSES.has(activeRun.data.status),
+  );
+  useRunEvents(activeRunId ?? undefined, Boolean(activeRunId) && !runTerminal);
 
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
@@ -259,16 +321,31 @@ export default function FlowEditorPage() {
   );
 
   useEffect(() => {
-    if (!flowQuery.data) return;
-    const next =
-      flowQuery.data.draft?.flow_json ?? emptyFlow(flowQuery.data.name);
+    const data = flowQuery.data;
+    if (!data || hydratedFlowId.current === data.id) return;
+    hydratedFlowId.current = data.id;
+    const source =
+      data.draft?.flow_json ?? data.current_version?.flow_json ?? null;
+    const next = source
+      ? normalizeFlowDocument(source, data.name)
+      : emptyFlow(data.name);
     setDocument(next);
-    setRevision(flowQuery.data.draft?.revision ?? null);
-    setPublishedVersion(
-      flowQuery.data.current_version?.version_number ?? null,
-    );
+    setRevision(data.draft?.revision ?? null);
+    setPublishedVersion(data.current_version?.version_number ?? null);
     setDirty(false);
     setMarkers([]);
+    setSelection({ nodeIds: [], wireIds: [] });
+    setEditingSubflow(null);
+    setError(null);
+    setNotice(
+      !data.draft && data.current_version
+        ? {
+            message: `Loaded published v${data.current_version.version_number}. Save to create a new draft.`,
+            tone: "info",
+          }
+        : null,
+    );
+    setConflict(false);
   }, [flowQuery.data]);
 
   useEffect(() => {
@@ -283,7 +360,150 @@ export default function FlowEditorPage() {
 
   usePageTitle(flowQuery.data?.name ?? "Flow editor");
 
-  const descriptorCount = nodeTypes.data?.items.length ?? 0;
+  useEffect(() => {
+    if (!activeRunId || runTerminal) return;
+    const timer = window.setInterval(() => {
+      void activeRun.refetch?.();
+      void runLogs.refetch?.();
+    }, 1_000);
+    return () => window.clearInterval(timer);
+  }, [activeRun.refetch, activeRunId, runLogs.refetch, runTerminal]);
+
+  useEffect(() => {
+    const run = activeRun.data;
+    if (!run || !TERMINAL_RUN_STATUSES.has(run.status)) return;
+    if (notifiedRun.current === run.id) return;
+    notifiedRun.current = run.id;
+    setNotice({
+      message: `Run ${run.status}.`,
+      tone:
+        run.status === "succeeded"
+          ? "success"
+          : run.status === "partial"
+            ? "warning"
+            : "error",
+    });
+  }, [activeRun.data]);
+
+  const catalog = useMemo(() => nodeTypes.data?.items ?? [], [nodeTypes.data]);
+
+  const activeSubflow = editingSubflow
+    ? document?.subflows.find((subflow) => subflow.id === editingSubflow)
+    : undefined;
+  const subflowMode = Boolean(activeSubflow);
+  const editorNodeTypes = useMemo(
+    () => (subflowMode ? [...catalog, ...STRUCTURAL_TYPES] : catalog),
+    [catalog, subflowMode],
+  );
+  const editorDocument =
+    document && activeSubflow
+      ? { ...document, nodes: activeSubflow.nodes, wires: activeSubflow.wires }
+      : document;
+
+  const workspaceTabs = useMemo<FlowWorkspaceTab[]>(() => {
+    const tabs: FlowWorkspaceTab[] = [];
+    const seen = new Set<string>();
+    const addFlowTab = (id: string, label: string) => {
+      if (seen.has(id)) return;
+      seen.add(id);
+      tabs.push({
+        id: `flow:${id}`,
+        label: label || "Untitled automation",
+        icon: "account_tree",
+        kind: "flow",
+        dirty: id === flowId && dirty,
+      });
+    };
+
+    for (const flow of flowsQuery.data?.items ?? []) {
+      if (flow.status === "archived") continue;
+      addFlowTab(flow.id, flow.name);
+    }
+    if (flowQuery.data) {
+      addFlowTab(flowQuery.data.id, flowQuery.data.name);
+    }
+    if (document) {
+      for (const subflow of document.subflows) {
+        tabs.push({
+          id: `subflow:${subflow.id}`,
+          label: subflow.name,
+          icon: "call_split",
+          kind: "subflow",
+          dirty,
+        });
+      }
+    }
+    return tabs;
+  }, [document, dirty, flowId, flowQuery.data, flowsQuery.data]);
+
+  const activeWorkspaceTab = editingSubflow
+    ? `subflow:${editingSubflow}`
+    : `flow:${flowId ?? ""}`;
+
+  const debugEvents = useMemo<FlowDebugEvent[]>(() => {
+    const labels = new Map<string, string>();
+    for (const node of document?.nodes ?? []) {
+      const descriptor = catalog.find(
+        (candidate) =>
+          candidate.id === node.type &&
+          candidate.version === node.type_version,
+      );
+      labels.set(
+        node.id,
+        node.label || descriptor?.display_name || node.id,
+      );
+    }
+    const events: FlowDebugEvent[] = (runLogs.data?.items ?? []).map(
+      (log) => ({
+        id: `log:${log.id}`,
+        sourceNodeId: log.node_id ?? undefined,
+        sourceLabel: log.node_id
+          ? labels.get(log.node_id) ?? log.node_id
+          : "run",
+        ts: log.ts,
+        value: log.fields ?? log.message,
+      }),
+    );
+    if (activeRun.data?.error) {
+      events.push({
+        id: `run:${activeRun.data.id}:error`,
+        sourceLabel: "run",
+        ts:
+          activeRun.data.ended_at ??
+          activeRun.data.started_at ??
+          activeRun.data.queued_at,
+        value: activeRun.data.error,
+      });
+    }
+    return events;
+  }, [activeRun.data, catalog, document, runLogs.data]);
+
+  const handleWorkspaceTabChange = (tabId: string) => {
+    if (tabId.startsWith("flow:")) {
+      const id = tabId.slice("flow:".length);
+      if (id === flowId) {
+        setEditingSubflow(null);
+        setSelection({ nodeIds: [], wireIds: [] });
+        return;
+      }
+      navigate(`/automation/flows/${id}`);
+      return;
+    }
+
+    if (tabId.startsWith("subflow:")) {
+      const id = tabId.slice("subflow:".length);
+      if (id === editingSubflow) return;
+      if (!document?.subflows.some((subflow) => subflow.id === id)) return;
+      setEditingSubflow(id);
+      setSelection({ nodeIds: [], wireIds: [] });
+      setNotice(null);
+    }
+  };
+
+  const handleAddWorkspaceTab = () => {
+    navigate("/automation/flows?new=1");
+  };
+
   const selectedSubflow = useMemo(() => {
     if (!document || selection.nodeIds.length !== 1) return null;
     const node = document.nodes.find(
@@ -291,29 +511,17 @@ export default function FlowEditorPage() {
     );
     if (!node || node.type !== "subflow") return null;
     const subflowId = node.config?.subflow_id;
-    return (
-      document.subflows.find((subflow) => subflow.id === subflowId) ?? null
-    );
+    if (typeof subflowId !== "string") return null;
+    return document.subflows.find((subflow) => subflow.id === subflowId) ?? null;
   }, [document, selection.nodeIds]);
 
   const applyDocument = (next: FlowDocument) => {
     setDocument(next);
     setDirty(true);
     setNotice(null);
+    setError(null);
   };
 
-  const activeSubflow = editingSubflow
-    ? document?.subflows.find((subflow) => subflow.id === editingSubflow)
-    : undefined;
-  const editorDocument =
-    document && activeSubflow
-      ? { ...document, nodes: activeSubflow.nodes, wires: activeSubflow.wires }
-      : document;
-  const editorNodeTypes = nodeTypes.data
-    ? activeSubflow
-      ? [...nodeTypes.data.items, ...STRUCTURAL_TYPES]
-      : nodeTypes.data.items
-    : [];
   const handleEditorChange = (next: FlowDocument) => {
     if (!document) return;
     if (activeSubflow) {
@@ -327,14 +535,22 @@ export default function FlowEditorPage() {
       });
       setDirty(true);
       setNotice(null);
+      setError(null);
       return;
     }
     applyDocument(next);
   };
 
+  const reloadLatest = () => {
+    hydratedFlowId.current = null;
+    setConflict(false);
+    void flowQuery.refetch();
+  };
+
   const save = async () => {
-    if (!document) return;
+    if (!document) return null;
     setError(null);
+    setConflict(false);
     try {
       const saved = await saveDraft.mutateAsync({
         flow: document,
@@ -343,9 +559,21 @@ export default function FlowEditorPage() {
       setRevision(saved.revision);
       setMarkers(toMarkers(saved.validation));
       setDirty(false);
-      setNotice("Draft saved.");
+      setNotice({ message: "Draft saved.", tone: "success" });
+      return saved;
     } catch (mutationError) {
-      setError(errorMessage(mutationError));
+      if (
+        mutationError instanceof AutomationApiError &&
+        mutationError.status === 409
+      ) {
+        setConflict(true);
+        setError(
+          "This draft changed elsewhere. Reload the latest revision before saving.",
+        );
+      } else {
+        setError(errorMessage(mutationError));
+      }
+      return null;
     }
   };
 
@@ -357,8 +585,11 @@ export default function FlowEditorPage() {
       setMarkers(toMarkers(validation));
       setNotice(
         validation.errors.length === 0
-          ? "The flow is valid."
-          : `${validation.errors.length} validation error(s).`,
+          ? { message: "The flow is valid.", tone: "success" }
+          : {
+              message: `${validation.errors.length} validation error(s).`,
+              tone: "warning",
+            },
       );
     } catch (mutationError) {
       setError(errorMessage(mutationError));
@@ -367,56 +598,177 @@ export default function FlowEditorPage() {
 
   const publishFlow = async () => {
     if (!document) return;
+    setPublishError(null);
     if (!changeNote.trim()) {
-      setError("Enter a change note before publishing.");
+      setPublishError("Enter a change note before publishing.");
       return;
     }
-    setError(null);
+    const checked = validateLocal(document, catalog);
+    if (checked.hasErrors) {
+      setMarkers(checked.markers);
+      setPublishError("Fix the validation errors before publishing.");
+      return;
+    }
+    let expectedRevision = revision ?? 0;
     try {
+      if (dirty || revision === null) {
+        const saved = await saveDraft.mutateAsync({
+          flow: document,
+          expectedRevision: revision ?? undefined,
+        });
+        setRevision(saved.revision);
+        setMarkers(toMarkers(saved.validation));
+        setDirty(false);
+        expectedRevision = saved.revision;
+        if (saved.validation.errors.length > 0) {
+          setPublishError(
+            "The server rejected the draft validation. Fix the errors and try again.",
+          );
+          return;
+        }
+      }
       const version = await publish.mutateAsync({
-        expectedRevision: revision ?? 0,
+        expectedRevision,
         changeNote: changeNote.trim(),
       });
       setPublishedVersion(version.version_number);
       setChangeNote("");
       setMarkers(toMarkers(version.validation));
-      setNotice(`Published v${version.version_number}.`);
+      setDirty(false);
+      setPublishOpen(false);
+      setError(null);
+      setNotice({
+        message: `Published v${version.version_number}.`,
+        tone: "success",
+      });
     } catch (mutationError) {
-      setError(errorMessage(mutationError));
+      const message = errorMessage(mutationError);
+      setPublishError(message);
+      setError(message);
+      if (
+        mutationError instanceof AutomationApiError &&
+        mutationError.status === 409
+      ) {
+        setConflict(true);
+      }
     }
   };
 
-  const start = async (rawInputs = "{}") => {
+  const startEditorRun = async (
+    nodeId: string | null,
+    inputs: unknown,
+    fromModal: boolean,
+  ) => {
     setError(null);
-    let inputs: unknown = {};
+    setRunningNodeId(nodeId);
     try {
-      inputs = rawInputs.trim() ? JSON.parse(rawInputs) : {};
-    } catch {
-      setError("Run inputs must be valid JSON.");
+      const accepted = await startRun.mutateAsync({
+        inputs,
+        ...(nodeId ? { inject_node_id: nodeId } : {}),
+      });
+      notifiedRun.current = null;
+      setActiveRunId(accepted.run_id);
+      setRunOpen(false);
+      setRunFromNodeId(null);
+      setRunError(null);
+      setNotice({
+        message: "Run started. Debug output appears in the Debug tab.",
+        tone: "info",
+      });
+    } catch (mutationError) {
+      const message = errorMessage(mutationError);
+      if (fromModal) setRunError(message);
+      else setError(message);
+    } finally {
+      setRunningNodeId(null);
+    }
+  };
+
+  const runFromNode = async (nodeId: string) => {
+    setError(null);
+    if (publishedVersion === null) {
+      setError("Publish a version before running this flow.");
       return;
     }
+    const requiredInputs = (document?.inputs ?? []).filter(
+      (input) => input.required && !input.secret,
+    );
+    if (requiredInputs.length > 0) {
+      setRunFromNodeId(nodeId);
+      setRunError(null);
+      setRunOpen(true);
+      return;
+    }
+    await startEditorRun(nodeId, {}, false);
+  };
+
+  const runFlow = async () => {
+    setRunError(null);
+    if (publishedVersion === null) {
+      setRunError("Publish a version before running this flow.");
+      return;
+    }
+    let inputs: unknown = {};
     try {
-      const accepted = await startRun.mutateAsync({ inputs });
-      navigate(`/automation/runs/${accepted.run_id}`);
-    } catch (mutationError) {
-      setError(errorMessage(mutationError));
+      inputs = runInputs.trim() ? JSON.parse(runInputs) : {};
+    } catch {
+      setRunError("Run inputs must be valid JSON.");
+      return;
+    }
+    await startEditorRun(runFromNodeId, inputs, true);
+  };
+
+  const closeRunModal = () => {
+    setRunOpen(false);
+    setRunFromNodeId(null);
+    setRunError(null);
+  };
+
+  const createSubflow = () => {
+    if (!document) return;
+    const result = createSubflowFromSelection(document, selection);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    if (result.document) {
+      applyDocument(result.document);
+      setSelection({ nodeIds: [], wireIds: [] });
+      setNotice({
+        message: "Subflow created from the selection.",
+        tone: "success",
+      });
+      setSettingsOpen(false);
     }
   };
 
-  if (flowQuery.isPending || nodeTypes.isPending) {
-    return (
-      <main className="obolargus_automation_page">
-        <Skeleton />
-      </main>
-    );
-  }
-  if (flowQuery.isError || !document) {
+  const instantiateSubflow = (subflowId: string, name: string) => {
+    if (!document) return;
+    const instance: FlowNode = {
+      id: nextKey("sub", new Set(document.nodes.map((node) => node.id))),
+      type: "subflow",
+      type_version: 1,
+      label: name,
+      position: findFreePosition(document.nodes, { x: 80, y: 80 }),
+      config: { subflow_id: subflowId },
+      retry: { max_attempts: 1, backoff_seconds: 0 },
+      timeout_seconds: 300,
+      error_policy: "fail",
+    };
+    applyDocument({
+      ...document,
+      nodes: [...document.nodes, instance],
+    });
+    setSettingsOpen(false);
+  };
+
+  if (flowQuery.isError) {
     return (
       <main className="obolargus_automation_page">
         <p className="obolargus_automation_error" role="alert">
           {errorMessage(flowQuery.error)}
         </p>
-        <Link to="/automation">Back to automation</Link>
+        <Link to="/automation/flows">Back to flows</Link>
       </main>
     );
   }
@@ -429,169 +781,31 @@ export default function FlowEditorPage() {
       </main>
     );
   }
+  if (
+    flowQuery.isPending ||
+    nodeTypes.isPending ||
+    !document ||
+    hydratedFlowId.current !== flowId
+  ) {
+    return (
+      <main className="obolargus_automation_page">
+        <Skeleton />
+      </main>
+    );
+  }
 
-  return (
-    <main className="obolargus_automation_page" aria-labelledby="flow-editor-title">
-      <header className="obolargus_automation_header">
-        <div>
-          <p className="obolargus_automation_meta">
-            <Link to="/automation">Automation</Link> / Draft
-          </p>
-          <h1 id="flow-editor-title">{flowQuery.data?.name}</h1>
-          <p className="obolargus_automation_meta">
-            Revision {revision ?? "new"} ·{" "}
-            {publishedVersion ? `published v${publishedVersion}` : "never published"}{" "}
-            · {descriptorCount} node types
-          </p>
-        </div>
-        <div className="obolargus_automation_header__actions">
-          <label>
-            <span>Change note</span>
-            <input
-              value={changeNote}
-              onChange={(event) => setChangeNote(event.target.value)}
-              placeholder="What changed?"
-            />
-          </label>
-          <Button onClick={() => void start()} disabled={startRun.isPending}>
-            {startRun.isPending ? "Starting…" : "Run"}
-          </Button>
-          <Button onClick={() => void publishFlow()} disabled={publish.isPending}>
-            {publish.isPending ? "Publishing…" : "Publish"}
-          </Button>
-          <Button onClick={() => void save()} disabled={saveDraft.isPending}>
-            {saveDraft.isPending ? "Saving…" : "Save draft"}
-          </Button>
-          <Button onClick={() => void runValidation()} disabled={validate.isPending}>
-            {validate.isPending ? "Validating…" : "Validate"}
-          </Button>
-        </div>
-      </header>
+  const settingsTabIndex = Math.max(
+    0,
+    PANELS.findIndex((entry) => entry.id === panel),
+  );
 
-      {error ? (
-        <p className="obolargus_automation_error" role="alert">
-          {error}
-        </p>
-      ) : null}
-      {notice ? (
-        <p className="obolargus_automation_notice" role="status">
-          {notice}
-        </p>
-      ) : null}
-
-      {activeSubflow ? (
-        <p className="obolargus_automation_notice" role="status">
-          Editing subflow <strong>{activeSubflow.name}</strong>. Structural
-          input/output nodes are editable while this mode is active.{" "}
-          <button
-            type="button"
-            onClick={() => {
-              setEditingSubflow(null);
-              setSelection({ nodeIds: [], wireIds: [] });
-            }}
-          >
-            Done editing subflow
-          </button>
-        </p>
-      ) : null}
-      <FlowEditor
-        key={editingSubflow ?? "flow"}
-        ref={editor}
-        document={editorDocument as FlowDocument}
-        nodeTypes={editorNodeTypes}
-        markers={activeSubflow ? [] : markers}
-        selection={selection}
-        onChange={handleEditorChange}
-        onSelectionChange={setSelection}
-      />
-
-      <section className="obolargus_automation_subflows" aria-label="Subflows">
-        <h2>Subflows</h2>
-        {document.subflows.length === 0 ? (
-          <p>No subflows. Select nodes and package them to reuse their logic.</p>
-        ) : (
-          <ul>
-            {document.subflows.map((subflow) => (
-              <li key={subflow.id}>
-                <strong>{subflow.name}</strong>{" "}
-                <span className="obolargus_automation_meta">
-                  {subflow.id} · {subflow.nodes.length} nodes
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingSubflow(subflow.id);
-                    setSelection({ nodeIds: [], wireIds: [] });
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const instance: FlowNode = {
-                      id: nextKey(
-                        "sub",
-                        new Set(document.nodes.map((node) => node.id)),
-                      ),
-                      type: "subflow",
-                      type_version: 1,
-                      label: subflow.name,
-                      position: { x: 80, y: 80 + document.nodes.length * 40 },
-                      config: { subflow_id: subflow.id },
-                      retry: { max_attempts: 1, backoff_seconds: 0 },
-                      timeout_seconds: 300,
-                      error_policy: "fail",
-                    };
-                    applyDocument({
-                      ...document,
-                      nodes: [...document.nodes, instance],
-                    });
-                  }}
-                >
-                  Instantiate
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <button
-          type="button"
-          onClick={() => {
-            const result = createSubflowFromSelection(document, selection);
-            if (result.error) setError(result.error);
-            else if (result.document) {
-              applyDocument(result.document);
-              setSelection({ nodeIds: [], wireIds: [] });
-              setNotice("Subflow created from the selection.");
-            }
-          }}
+  const settingsPanelByTab = {
+    details:
+      panel === "details" ? (
+        <section
+          className="obolargus_automation_panel"
+          aria-label="Flow details"
         >
-          Create subflow from selection
-        </button>
-        {selectedSubflow ? (
-          <p role="status">
-            Selected instance uses subflow <strong>{selectedSubflow.name}</strong>{" "}
-            ({selectedSubflow.id}).
-          </p>
-        ) : null}
-      </section>
-
-      <nav className="obolargus_automation_tabs" aria-label="Flow panels">
-        {PANELS.map((entry) => (
-          <button
-            key={entry.id}
-            type="button"
-            aria-current={panel === entry.id ? "page" : undefined}
-            onClick={() => setPanel(entry.id)}
-          >
-            {entry.label}
-          </button>
-        ))}
-      </nav>
-
-      {panel === "details" ? (
-        <section className="obolargus_automation_panel" aria-label="Flow details">
           <h2>Details</h2>
           <dl>
             <dt>Description</dt>
@@ -603,49 +817,374 @@ export default function FlowEditorPage() {
             <dt>Updated</dt>
             <dd>{formatInstant(flowQuery.data?.updated_at)}</dd>
           </dl>
-          <label className="obolargus_automation_run_inputs">
-            <span>Run inputs (JSON)</span>
-            <textarea
-              rows={5}
-              value={runInputs}
-              onChange={(event) => setRunInputs(event.target.value)}
-              placeholder={'{\n  "identifiers": [{"scheme": "TICKER", "value": "XNAS:AAPL"}]\n}'}
-            />
-          </label>
-          <Button
-            onClick={() => void start(runInputs)}
-            disabled={startRun.isPending}
-          >
-            Run with inputs
-          </Button>
         </section>
-      ) : null}
-      {panel === "versions" && flowId ? (
+      ) : null,
+    versions:
+      panel === "versions" && flowId ? (
         <VersionPanel
           flowId={flowId}
           currentVersionNumber={publishedVersion}
         />
-      ) : null}
-      {panel === "triggers" && flowId ? <TriggerPanel flowId={flowId} /> : null}
-      {panel === "context" && flowId ? <ContextPanel flowId={flowId} /> : null}
-      {panel === "audit" && flowId ? <AuditPanel flowId={flowId} /> : null}
+      ) : null,
+    triggers:
+      panel === "triggers" && flowId ? <TriggerPanel flowId={flowId} /> : null,
+    context:
+      panel === "context" && flowId ? <ContextPanel flowId={flowId} /> : null,
+    audit:
+      panel === "audit" && flowId ? <AuditPanel flowId={flowId} /> : null,
+    subflows:
+      panel === "subflows" ? (
+        <section className="obolargus_automation_panel" aria-label="Subflows">
+          <h2>Subflows</h2>
+          {document.subflows.length === 0 ? (
+            <p>
+              No subflows. Select nodes and package them to reuse their logic.
+            </p>
+          ) : (
+            <ul className="obolargus_automation_subflow_list">
+              {document.subflows.map((subflow) => (
+                <li key={subflow.id}>
+                  <span>
+                    <strong>{subflow.name}</strong>{" "}
+                    <span className="obolargus_automation_meta">
+                      {subflow.id} · {subflow.nodes.length} nodes
+                    </span>
+                  </span>
+                  <span className="obolargus_automation_row_actions">
+                    <Button
+                      onClick={() => {
+                        setEditingSubflow(subflow.id);
+                        setSelection({ nodeIds: [], wireIds: [] });
+                        setSettingsOpen(false);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        instantiateSubflow(subflow.id, subflow.name)
+                      }
+                    >
+                      Instantiate
+                    </Button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Button
+            onClick={createSubflow}
+            disabled={selection.nodeIds.length === 0}
+          >
+            Create subflow from selection
+          </Button>
+          {selectedSubflow ? (
+            <p className="obolargus_automation_meta" role="status">
+              Selected instance uses subflow{" "}
+              <strong>{selectedSubflow.name}</strong> ({selectedSubflow.id}).
+            </p>
+          ) : null}
+        </section>
+      ) : null,
+  };
 
-      {blocker.state === "blocked" ? (
-        <div
-          className="obolargus_automation_dialog"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Unsaved changes"
-        >
-          <p>You have unsaved changes. Discard them and leave this page?</p>
-          <button type="button" onClick={() => blocker.proceed()}>
-            Discard changes
-          </button>
-          <button type="button" onClick={() => blocker.reset()}>
-            Stay on this page
-          </button>
+  const settingsTabItems = PANELS.map((entry) => ({
+    id: entry.id,
+    header: entry.label,
+    component: settingsPanelByTab[entry.id],
+  }));
+
+  return (
+    <main
+      className="obolargus_automation_page obolargus_automation_page--flow"
+      aria-labelledby="flow-editor-title"
+    >
+      <h1 id="flow-editor-title" className="obolargus_visually_hidden">
+        {flowQuery.data?.name}
+      </h1>
+
+      <div className="obolargus_automation_flowbar">
+        <div className="obolargus_automation_flowbar__left">
+          <Button
+            variant="ghost"
+            className="obolargus_automation_compact"
+            onClick={() => navigate("/automation/flows")}
+          >
+            Flows
+          </Button>
+          <span className="obolargus_automation_flowbar__meta">
+            <span
+              className={
+                dirty
+                  ? "obolargus_automation_flowbar__dirty"
+                  : "obolargus_automation_flowbar__saved"
+              }
+              role="status"
+            >
+              {dirty ? "Unsaved changes" : "Saved"}
+            </span>{" "}
+            · Revision {revision ?? "new"} ·{" "}
+            {publishedVersion ? `published v${publishedVersion}` : "unpublished"}
+          </span>
+          {activeRunId ? (
+            <span
+              className="obolargus_automation_runstatus"
+              data-status={activeRun.data?.status ?? "queued"}
+              role="status"
+            >
+              Run {activeRun.data?.status ?? "queued"}
+            </span>
+          ) : null}
+          {activeSubflow ? (
+            <span className="obolargus_automation_flowbar__subflow">
+              Subflow <strong>{activeSubflow.name}</strong>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingSubflow(null);
+                  setSelection({ nodeIds: [], wireIds: [] });
+                }}
+              >
+                Done
+              </button>
+            </span>
+          ) : null}
         </div>
+        <div className="obolargus_automation_flowbar__actions">
+          <Button
+            variant="ghost"
+            className="obolargus_automation_compact"
+            onClick={() => setSettingsOpen(true)}
+          >
+            Flow settings
+          </Button>
+          <Button
+            className="obolargus_automation_compact"
+            onClick={() => void save()}
+            disabled={saveDraft.isPending || (!dirty && revision !== null)}
+          >
+            {saveDraft.isPending ? "Saving…" : "Save draft"}
+          </Button>
+          <Button
+            className="obolargus_automation_compact"
+            onClick={() => void runValidation()}
+            disabled={validate.isPending}
+          >
+            {validate.isPending ? "Validating…" : "Validate"}
+          </Button>
+          <Button
+            variant="primary"
+            className="obolargus_automation_compact"
+            onClick={() => {
+              setPublishError(null);
+              setPublishOpen(true);
+            }}
+          >
+            Publish
+          </Button>
+        </div>
+      </div>
+
+      {error || notice ? (
+        <ToastRegion>
+          {error ? (
+            <Toast
+              tone="error"
+              title="Something went wrong"
+              onClose={() => setError(null)}
+              action={
+                conflict ? (
+                  <Button variant="ghost" onClick={reloadLatest}>
+                    Reload latest
+                  </Button>
+                ) : undefined
+              }
+            >
+              {error}
+            </Toast>
+          ) : null}
+          {notice ? (
+            <Toast
+              tone={notice.tone}
+              onClose={() => setNotice(null)}
+              autoCloseMs={6000}
+            >
+              {notice.message}
+            </Toast>
+          ) : null}
+        </ToastRegion>
       ) : null}
+
+      <FlowEditor
+        key={`${flowId ?? "flow"}:${editingSubflow ?? "flow"}`}
+        ref={editor}
+        document={editorDocument as FlowDocument}
+        nodeTypes={editorNodeTypes}
+        markers={activeSubflow ? [] : markers}
+        debugEvents={debugEvents}
+        selection={selection}
+        onChange={handleEditorChange}
+        onSelectionChange={setSelection}
+        workspaceTabs={workspaceTabs}
+        activeWorkspaceTab={activeWorkspaceTab}
+        onWorkspaceTabChange={handleWorkspaceTabChange}
+        onAddWorkspaceTab={handleAddWorkspaceTab}
+        addWorkspaceTabLabel="New flow"
+        onRunNode={
+          activeSubflow
+            ? undefined
+            : (nodeId) => void runFromNode(nodeId)
+        }
+        runningNodeId={runningNodeId}
+        debugRevealKey={activeRunId ?? runningNodeId}
+      />
+
+      <Modal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        title="Flow settings"
+        className="obolargus_automation_modal"
+        footer={<Button onClick={() => setSettingsOpen(false)}>Close</Button>}
+      >
+        <TabPanel
+          variant="plain"
+          className="obolargus_automation_settings_tabs"
+          ariaLabel="Flow panels"
+          tabs={settingsTabItems}
+          selected={settingsTabIndex}
+          onSelect={(index) => {
+            const entry = PANELS[index];
+            if (entry) setPanel(entry.id);
+          }}
+        />
+      </Modal>
+
+      <Modal
+        open={publishOpen}
+        onClose={() => setPublishOpen(false)}
+        title="Publish flow"
+        className="obolargus_automation_modal"
+        footer={
+          <>
+            <Button onClick={() => setPublishOpen(false)}>Cancel</Button>
+            <Button
+              variant="primary"
+              onClick={() => void publishFlow()}
+              disabled={publish.isPending}
+            >
+              {publish.isPending ? "Publishing…" : "Publish"}
+            </Button>
+          </>
+        }
+      >
+        <p className="obolargus_automation_meta">
+          {dirty
+            ? "The current draft is saved before publishing."
+            : "The saved draft will be published."}{" "}
+          Current published version:{" "}
+          {publishedVersion ? `v${publishedVersion}` : "none"}.
+        </p>
+        <label className="obolargus_automation_field">
+          <span>Change note</span>
+          <input
+            value={changeNote}
+            onChange={(event) => setChangeNote(event.target.value)}
+            placeholder="What changed?"
+          />
+        </label>
+        {publishError ? (
+          <p className="obolargus_automation_error" role="alert">
+            {publishError}
+          </p>
+        ) : null}
+      </Modal>
+
+      <Modal
+        open={runOpen}
+        onClose={closeRunModal}
+        title="Run flow"
+        className="obolargus_automation_modal"
+        footer={
+          <>
+            <Button onClick={closeRunModal}>Cancel</Button>
+            <Button
+              variant="primary"
+              onClick={() => void runFlow()}
+              disabled={startRun.isPending || publishedVersion === null}
+            >
+              {startRun.isPending ? "Starting…" : "Run with inputs"}
+            </Button>
+          </>
+        }
+      >
+        <p className="obolargus_automation_meta">
+          Runs the latest published version
+          {publishedVersion ? ` (v${publishedVersion})` : ""}
+          {runFromNodeId ? " from the selected inject node" : ""}.
+          {dirty ? " Unsaved changes are not included." : ""}
+        </p>
+        {runFromNodeId ? (
+          <p className="obolargus_automation_meta">
+            Starting from{" "}
+            <strong>
+              {document.nodes.find((node) => node.id === runFromNodeId)
+                ?.label ?? runFromNodeId}
+            </strong>
+            . That node and every downstream node will run.
+          </p>
+        ) : null}
+        {publishedVersion === null ? (
+          <p className="obolargus_automation_error" role="alert">
+            Publish a version before running this flow.
+          </p>
+        ) : null}
+        <label className="obolargus_automation_field">
+          <span>Run inputs (JSON)</span>
+          <textarea
+            rows={8}
+            value={runInputs}
+            onChange={(event) => setRunInputs(event.target.value)}
+            placeholder={
+              '{\n  "identifiers": [{"scheme": "TICKER", "value": "XNAS:AAPL"}]\n}'
+            }
+          />
+        </label>
+        {runError ? (
+          <p className="obolargus_automation_error" role="alert">
+            {runError}
+          </p>
+        ) : null}
+      </Modal>
+
+      <Modal
+        open={blocker.state === "blocked"}
+        onClose={() => {
+          if (blocker.state === "blocked") blocker.reset();
+        }}
+        title="Unsaved changes"
+        role="alertdialog"
+        footer={
+          <>
+            <Button
+              onClick={() => {
+                if (blocker.state === "blocked") blocker.reset();
+              }}
+            >
+              Stay on this page
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (blocker.state === "blocked") blocker.proceed();
+              }}
+            >
+              Discard changes
+            </Button>
+          </>
+        }
+      >
+        <p>You have unsaved changes. Discard them and leave this page?</p>
+      </Modal>
     </main>
   );
 }

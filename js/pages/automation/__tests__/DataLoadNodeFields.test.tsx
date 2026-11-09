@@ -1,7 +1,11 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { getComponent } from "lx_client/js/components/SchemaForm/registry";
-import { IdentifierBatch, SourceSelect } from "../DataLoadNodeFields";
+import {
+  DateOrExpression,
+  IdentifierBatch,
+  SourceSelect,
+} from "../DataLoadNodeFields";
 import { renderWithQueryClient } from "../../../query/testUtils";
 
 jest.mock("../../../query/dataLoadQueries", () => ({
@@ -38,7 +42,39 @@ jest.mock("../../../query/dataLoadQueries", () => ({
 describe("data-load field adapters", () => {
   it("registers both adapters with SchemaForm", () => {
     expect(getComponent("IdentifierBatch")).toBe(IdentifierBatch);
+    expect(getComponent("DateOrExpression")).toBe(DateOrExpression);
     expect(getComponent("SourceSelect")).toBe(SourceSelect);
+  });
+
+  it("edits a date or an expression value", () => {
+    const onChange = jest.fn();
+    render(
+      <DateOrExpression
+        id="as-of-date"
+        path="as_of_date"
+        value="2026-01-02"
+        schema={{ title: "As of date" }}
+        onChange={onChange}
+      />,
+    );
+    const input = screen.getByLabelText("As of date");
+    expect(input).toHaveValue("2026-01-02");
+    fireEvent.change(input, { target: { value: "2026-02-03" } });
+    expect(onChange).toHaveBeenLastCalledWith("2026-02-03");
+
+    onChange.mockClear();
+    render(
+      <DateOrExpression
+        id="expression-date"
+        path="as_of_date"
+        value={{ kind: "reference", path: "inputs.as_of_date" }}
+        schema={{ title: "As of date" }}
+        onChange={onChange}
+      />,
+    );
+    expect(screen.getAllByLabelText("As of date")[1]).toHaveValue(
+      '{"kind":"reference","path":"inputs.as_of_date"}',
+    );
   });
 
   it("parses and serializes typed identifiers", async () => {

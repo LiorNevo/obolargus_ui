@@ -7,6 +7,164 @@
   padding: 16px 24px 32px;
 }
 
+/* The authoring surface fills the shell's main area. The editor owns its own
+   internal scrolling so the page never scrolls while a flow is open. */
+.obolargus_automation_page--flow {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 6px 10px 10px;
+  gap: 6px;
+  box-sizing: border-box;
+}
+
+.obolargus_automation_page--flow > .lx-flow-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* One compact strip replaces the old page header so the canvas keeps the
+   vertical space. The flow name lives in the editor's workspace tab. */
+.obolargus_automation_flowbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 34px;
+}
+
+.obolargus_automation_flowbar__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.obolargus_automation_flowbar__meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--fg, #101828) 62%, transparent);
+  font-size: 0.72rem;
+}
+
+.obolargus_automation_flowbar__dirty {
+  color: var(--warning, #b54708);
+  font-weight: 600;
+}
+
+.obolargus_automation_flowbar__saved {
+  color: var(--success, #067647);
+}
+
+.obolargus_automation_flowbar__subflow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 8px;
+  border: 1px solid var(--border, #d0d5dd);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.obolargus_automation_flowbar__subflow button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.obolargus_automation_flowbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.obolargus_automation_compact.lx_client_button {
+  min-height: 28px;
+  padding: 2px 9px;
+  font-size: 0.76rem;
+}
+
+.obolargus_automation_runstatus {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border: 1px solid var(--border, #d0d5dd);
+  border-radius: 999px;
+  color: var(--fg, #101828);
+  font-size: 0.7rem;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.obolargus_automation_runstatus[data-status="queued"],
+.obolargus_automation_runstatus[data-status="running"] {
+  border-color: var(--accent, #175cd3);
+  color: var(--accent, #175cd3);
+}
+
+.obolargus_automation_runstatus[data-status="succeeded"] {
+  border-color: var(--success, #067647);
+  color: var(--success, #067647);
+}
+
+.obolargus_automation_runstatus[data-status="partial"] {
+  border-color: var(--warning, #b54708);
+  color: var(--warning, #b54708);
+}
+
+.obolargus_automation_runstatus[data-status="failed"],
+.obolargus_automation_runstatus[data-status="cancelled"],
+.obolargus_automation_runstatus[data-status="interrupted"] {
+  border-color: var(--error, #b42318);
+  color: var(--error, #b42318);
+}
+
+@media (max-width: 980px) {
+  .obolargus_automation_flowbar__meta {
+    display: none;
+  }
+}
+
+.obolargus_automation_modal .lx_client_modal_body {
+  max-height: min(70vh, 640px);
+  overflow: auto;
+}
+
+.obolargus_automation_modal .lx_client_modal_footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.obolargus_automation_subflow_list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.obolargus_automation_subflow_list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border, #eaecf0);
+}
+
 .obolargus_automation_header {
   display: flex;
   flex-wrap: wrap;
@@ -76,17 +234,14 @@
 }
 
 .obolargus_automation_error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   border: 1px solid #fecdca;
   background: #fef3f2;
   color: #b42318;
-  padding: 8px 12px;
-  border-radius: 6px;
-}
-
-.obolargus_automation_notice {
-  border: 1px solid #abefc6;
-  background: #ecfdf3;
-  color: #067647;
   padding: 8px 12px;
   border-radius: 6px;
 }
@@ -176,7 +331,6 @@
 
 .obolargus_automation_row_actions button,
 .obolargus_automation_panel button,
-.obolargus_automation_tabs button,
 .obolargus_automation_dialog button {
   font: inherit;
   padding: 3px 10px;
@@ -247,20 +401,99 @@
   font-size: 0.7rem;
 }
 
-.obolargus_automation_tabs {
-  display: flex;
-  gap: 4px;
+.obolargus_automation_modal
+  .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.obolargus_automation_modal
+  .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain
+  .lx_client_tab_panel_headers_container {
+  height: auto;
   border-bottom: 1px solid var(--color-border, #d0d5dd);
+  background: transparent;
+  overflow: hidden;
 }
 
-.obolargus_automation_tabs button {
-  border-radius: 4px 4px 0 0;
+.obolargus_automation_modal
+  .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain
+  .lx_client_tab_panel_headers_scroll {
+  gap: 4px;
+  align-items: stretch;
+}
+
+.obolargus_automation_modal
+  .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain
+  .lx_client_tab_header_container {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  padding: 0;
+  border: 1px solid var(--border, #d0d5dd);
   border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  background: var(--bg, #ffffff);
 }
 
-.obolargus_automation_tabs button[aria-current="page"] {
-  background: #eff8ff;
-  border-color: #175cd3;
+.obolargus_automation_modal
+  .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain
+  .lx_client_tab_header_container.first {
+  border-left: 1px solid var(--border, #d0d5dd);
+}
+
+.obolargus_automation_modal
+  .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain
+  .lx_client_tab_header_container:hover {
+  background: color-mix(in srgb, var(--fg, #101828) 6%, var(--bg, #ffffff));
+}
+
+.obolargus_automation_modal
+  .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain
+  .lx_client_tab_header_container[data-selected="true"] {
+  background: color-mix(in srgb, var(--accent, #175cd3) 14%, var(--bg, #ffffff));
+  border-color: var(--accent, #175cd3);
+}
+
+.obolargus_automation_modal
+  .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain
+  .lx_client_tab_header_button {
+  padding: 3px 10px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  opacity: 1;
+}
+
+.obolargus_automation_modal
+  .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain
+  .lx_client_tab_header_label_container {
+  padding: 0;
+  overflow: visible;
+  opacity: 1;
+  cursor: pointer;
+}
+
+.obolargus_automation_modal
+  .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain
+  .lx_client_tab_header_label_container.selected {
+  color: inherit;
+}
+
+.obolargus_automation_modal
+  .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain
+  .lx_client_tab_panel_main_view {
+  height: auto;
+  border: 0;
+  overflow: visible;
+  padding-top: 12px;
+}
+
+.obolargus_automation_modal
+  .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain
+  .lx_client_tab_panel_main_view_tab.selected {
+  display: block;
 }
 
 .obolargus_automation_subflows ul {

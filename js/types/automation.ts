@@ -210,6 +210,8 @@ export interface FlowDetail {
     version_number: number;
     published_at: string | null;
     change_note: string | null;
+    /** Published document, used when a flow has no draft. */
+    flow_json?: FlowDocument;
   } | null;
   created_at: string;
   updated_at: string;

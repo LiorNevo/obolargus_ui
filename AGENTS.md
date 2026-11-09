@@ -110,7 +110,29 @@ Operational rules for contributors and AI agents working in this app.
 - `js/pages/automation/` composes the reusable
   `lx_client/js/components/FlowEditor` and the SchemaForm adapters in
   `DataLoadNodeFields.tsx`.
+- `/automation` is the entry point: it opens the most recently updated active
+  flow in the editor, or falls back to the flow list when no active flow
+  exists. The list/create/template surface lives at `/automation/flows`.
+- The editor's workspace tab strip is the flow switcher: every active flow is a
+  tab, and the current flow's subflows follow it. Adding a tab opens the flow
+  list with the create field focused.
 - Reads go through `js/query/automationQueries.ts`; writes go through
   `js/query/mutations.ts`. Add keys only in `js/query/keys.ts`.
 - The editor is a controlled component: keep the draft document in the page,
   persist through mutations, and guard dirty state on navigation and unload.
+- The authoring page fills the viewport: the editor is the flex child that
+  absorbs remaining height. Details, versions, triggers, context, audit,
+  subflows, publish, and run live in modals so the page never scrolls while
+  editing.
+- Page-level feedback uses `lx_client/js/components/Toast` through
+  `ToastRegion`; notices auto-dismiss and are closable, while errors persist
+  until dismissed. Do not add another inline notice bar.
+- Inject nodes show a manual run button supplied by the host. It starts the
+  published flow at that inject node (`inject_node_id`) and runs every
+  downstream node. The editor stays open: the flow bar shows live run status,
+  the Debug sidebar opens, and run logs (including debug-node output) stream
+  into it. Required flow inputs open the existing Run modal first; unsaved
+  nodes are not in the published version and surface a clear API error.
+- `FlowEditorPage` hydrates its draft once per flow id. Background refetches
+  after save/publish must not overwrite local edits; conflicts surface a
+  reload-latest action instead.

@@ -9,6 +9,9 @@ import { TestPage } from "../components/TestPage";
 const LazyDashboardPage = lazy(() => import("../pages/DashboardPage"));
 const LazyDataLoadPage = lazy(() => import("../pages/DataLoadPage"));
 const LazySemanticLayerPage = lazy(() => import("../pages/SemanticLayerPage"));
+const LazyAutomationLandingPage = lazy(
+  () => import("../pages/automation/AutomationLandingPage"),
+);
 const LazyAutomationListPage = lazy(
   () => import("../pages/automation/AutomationListPage"),
 );
@@ -89,6 +92,17 @@ export const PAGES: PageDefinition[] = [
     requiredPermission: "workspace:view",
     availability: "available",
     showInNavigation: true,
+    element: suspense(<LazyAutomationLandingPage />),
+  },
+  {
+    id: "automation-flows",
+    path: "/automation/flows",
+    label: "Flows",
+    title: "Flows",
+    visibility: "restricted",
+    requiredPermission: "workspace:view",
+    availability: "available",
+    showInNavigation: false,
     element: suspense(<LazyAutomationListPage />),
   },
   {

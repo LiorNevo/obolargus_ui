@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "lx_client/js/navigation/usePageTitle";
 import { Button } from "lx_client/js/components/Button";
 import { Skeleton } from "lx_client/js/components/Skeleton";
+import { Toast, ToastRegion } from "lx_client/js/components/Toast";
 import type { TemplateSummary } from "../../types/automation";
 import {
   useFlowsQuery,
@@ -118,6 +119,8 @@ function FlowRowActions({
 export default function AutomationListPage() {
   usePageTitle("Automation");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nameInput = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [name, setName] = useState("");
@@ -132,6 +135,12 @@ export default function AutomationListPage() {
   });
   const templates = useTemplatesQuery();
   const createFlow = useCreateFlowMutation();
+
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      nameInput.current?.focus();
+    }
+  }, [searchParams]);
 
   const total = flows.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -167,6 +176,7 @@ export default function AutomationListPage() {
           <label>
             <span className="obolargus_visually_hidden">New flow name</span>
             <input
+              ref={nameInput}
               value={name}
               placeholder="New flow name"
               onChange={(event) => setName(event.target.value)}
@@ -179,9 +189,15 @@ export default function AutomationListPage() {
       </header>
 
       {actionError ? (
-        <p className="obolargus_automation_error" role="alert">
-          {actionError}
-        </p>
+        <ToastRegion>
+          <Toast
+            tone="error"
+            title="Action failed"
+            onClose={() => setActionError(null)}
+          >
+            {actionError}
+          </Toast>
+        </ToastRegion>
       ) : null}
 
       <section aria-label="Filters" className="obolargus_automation_filters">

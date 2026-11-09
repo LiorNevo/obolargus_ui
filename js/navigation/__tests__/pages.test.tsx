@@ -8,6 +8,7 @@ const USER_FACING_IDS = [
   "data-load",
   "semantic-layer",
   "automation",
+  "automation-flows",
   "automation-flow",
   "automation-runs",
   "automation-run",
@@ -38,6 +39,11 @@ const EXPECTED_PAGES: Record<
   },
   automation: {
     label: "Automation",
+    permission: "workspace:view",
+    availability: "available",
+  },
+  "automation-flows": {
+    label: "Flows",
     permission: "workspace:view",
     availability: "available",
   },
@@ -129,7 +135,10 @@ describe("financial page registry", () => {
     );
 
     const expectedNavigation = USER_FACING_IDS.filter(
-      (id) => id !== "automation-flow" && id !== "automation-run",
+      (id) =>
+        id !== "automation-flows" &&
+        id !== "automation-flow" &&
+        id !== "automation-run",
     );
     expect(entries.map((entry) => entry.id)).toEqual([...expectedNavigation]);
     expect(entries.map((entry) => entry.path)).toContain("/");

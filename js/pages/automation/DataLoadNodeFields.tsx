@@ -50,8 +50,46 @@ export const IdentifierBatch = ((props: FormFieldProps) => {
           props.onChange(parseIdentifiers(event.target.value))
         }
       />
-      {props.errors?.length ? (
-        <p role="alert">{props.errors.join(" ")}</p>
+    </div>
+  );
+}) as ComponentType<FormFieldProps>;
+
+/** Text adapter for date values or JSON expression objects. */
+export const DateOrExpression = ((props: FormFieldProps) => {
+  const value = props.value;
+  const text =
+    typeof value === "string"
+      ? value
+      : value && typeof value === "object"
+        ? JSON.stringify(value)
+        : "";
+  return (
+    <div className="obolargus_automation_field">
+      <label htmlFor={props.id}>
+        {String(props.schema.title ?? "Date")}
+      </label>
+      <input
+        id={props.id}
+        type="text"
+        value={text}
+        disabled={props.disabled}
+        placeholder="2026-01-02 or an expression object"
+        onChange={(event) => {
+          const next = event.target.value;
+          const trimmed = next.trim();
+          if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+            try {
+              props.onChange(JSON.parse(trimmed));
+              return;
+            } catch {
+              // Keep the partial text as a string until it becomes valid JSON.
+            }
+          }
+          props.onChange(next);
+        }}
+      />
+      {value && typeof value === "object" ? (
+        <p className="obolargus_automation_meta">Expression value</p>
       ) : null}
     </div>
   );
@@ -88,4 +126,5 @@ export const SourceSelect = ((props: FormFieldProps) => {
 }) as ComponentType<FormFieldProps>;
 
 registerComponent("IdentifierBatch", IdentifierBatch);
+registerComponent("DateOrExpression", DateOrExpression);
 registerComponent("SourceSelect", SourceSelect);
