@@ -370,7 +370,7 @@
   .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain
   .lx_client_tab_header_container {
   flex: 1 1 0;
-  min-width: 64px;
+  min-width: var(--lx-tab-min-width, 4rem);
   max-width: none;
   height: 34px;
   padding: 0;
