@@ -113,6 +113,17 @@ module.exports = (env = {}, argv = {}) => {
           from: themeCssPath,
           to: "theme-registry.css",
         },
+        ...(!isProduction
+          ? [
+              {
+                from: path.resolve(
+                  __dirname,
+                  "js/service-worker/development-service-worker.js",
+                ),
+                to: "service-worker.js",
+              },
+            ]
+          : []),
         {
           from: path.resolve(lxClientSource, "..", "static", "cursor"),
           to: "cursor",
@@ -171,6 +182,10 @@ module.exports = (env = {}, argv = {}) => {
             loader: "ts-loader",
             options: {
               compiler: typeScriptCompiler,
+              // ts-loader warns for every compiler supplied by path because
+              // it cannot verify compatibility. This is the supported TS 6
+              // JavaScript compiler, so keep errors and drop the noise.
+              logLevel: "ERROR",
               configFile: path.resolve(__dirname, "tsconfig.sw.json"),
             },
           },
@@ -182,6 +197,7 @@ module.exports = (env = {}, argv = {}) => {
             loader: "ts-loader",
             options: {
               compiler: typeScriptCompiler,
+              logLevel: "ERROR",
               allowTsInNodeModules: true,
             },
           },

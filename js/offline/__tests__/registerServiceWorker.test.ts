@@ -3,6 +3,7 @@ import {
   canRegisterServiceWorker,
   registerServiceWorker,
   resetServiceWorkerForTests,
+  unregisterServiceWorkers,
 } from "../registerServiceWorker";
 
 jest.mock("workbox-window", () => {
@@ -83,6 +84,25 @@ describe("registerServiceWorker", () => {
     };
     expect(instance.register).toHaveBeenCalled();
     expect(instance.update).toHaveBeenCalled();
+  });
+
+  it("unregisters workers and clears cache storage", async () => {
+    const unregister = jest.fn().mockResolvedValue(true);
+    Object.defineProperty(navigator, "serviceWorker", {
+      value: { getRegistrations: jest.fn().mockResolvedValue([{ unregister }]) },
+      configurable: true,
+    });
+    const deleteCache = jest.fn().mockResolvedValue(true);
+    Object.defineProperty(globalThis, "caches", {
+      value: {
+        keys: jest.fn().mockResolvedValue(["obolargus-ui-v1"]),
+        delete: deleteCache,
+      },
+      configurable: true,
+    });
+    await unregisterServiceWorkers();
+    expect(unregister).toHaveBeenCalled();
+    expect(deleteCache).toHaveBeenCalledWith("obolargus-ui-v1");
   });
 
   it("returns the existing registration on repeat calls", () => {
