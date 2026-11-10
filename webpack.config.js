@@ -28,11 +28,10 @@ function resolveTypeScriptCompiler() {
 const typeScriptCompiler = resolveTypeScriptCompiler();
 
 
-// Resolve the installed lx_client source through its pnpm symlink so ts-loader
-// can transpile the TypeScript modules the app deep-imports.
-const lxClientSource = realpathSync(
-  path.resolve(__dirname, "node_modules/lx_client/js"),
-);
+// Resolve the workspace lx_client source directly. pnpm's `file:` install is a
+// snapshot copy, so using the sibling checkout keeps the dev server and
+// production builds in sync with local FlowEditor changes.
+const lxClientSource = path.resolve(__dirname, "../lx_client/js");
 
 // react-router 7.18's export map points every condition at the development
 // build. Production output can use the shipped production bundle directly.
@@ -156,6 +155,23 @@ module.exports = (env = {}, argv = {}) => {
       extensions: [".tsx", ".ts", ".js"],
       alias: {
         "@": path.resolve(__dirname, "js"),
+        lx_client: path.resolve(__dirname, "../lx_client"),
+        // Keep one React instance even though lx_client is compiled from the
+        // sibling workspace source.
+        react$: path.resolve(__dirname, "node_modules/react"),
+        "react/jsx-runtime$": path.resolve(
+          __dirname,
+          "node_modules/react/jsx-runtime.js",
+        ),
+        "react/jsx-dev-runtime$": path.resolve(
+          __dirname,
+          "node_modules/react/jsx-dev-runtime.js",
+        ),
+        "react-dom$": path.resolve(__dirname, "node_modules/react-dom"),
+        "react-dom/client$": path.resolve(
+          __dirname,
+          "node_modules/react-dom/client.js",
+        ),
         "react-router$": path.join(
           reactRouterDir,
           "dist/production/index.mjs",
