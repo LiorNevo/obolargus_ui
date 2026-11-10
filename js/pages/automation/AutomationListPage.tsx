@@ -1,10 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "lx_client/js/navigation/usePageTitle";
 import { Button } from "lx_client/js/components/Button";
+import { Input } from "lx_client/js/components/Input";
+import { MultiSelect } from "lx_client/js/components/MultiSelect";
+import type { SelectOption } from "lx_client/js/components/MultiSelect/types";
 import { Skeleton } from "lx_client/js/components/Skeleton";
+import { Table } from "lx_client/js/components/Table";
+import type { TableColumnDef } from "lx_client/js/components/Table/types";
 import { Toast, ToastRegion } from "lx_client/js/components/Toast";
-import type { TemplateSummary } from "../../types/automation";
+import type { FlowSummary, TemplateSummary } from "../../types/automation";
 import {
   useFlowsQuery,
   useTemplatesQuery,
@@ -19,6 +24,12 @@ import { errorMessage, formatInstant, StatusBadge } from "./shared";
 import "./automation.css";
 
 const PAGE_SIZE = 20;
+
+const STATUS_OPTIONS: SelectOption[] = [
+  { id: 0, label: "All", value: "" },
+  { id: 1, label: "Active", value: "active" },
+  { id: 2, label: "Archived", value: "archived" },
+];
 
 function TemplateGallery({
   templates,
@@ -73,8 +84,8 @@ function FlowRowActions({
         Runs
       </Link>
       {flow.status === "archived" ? (
-        <button
-          type="button"
+        <Button
+          variant="ghost"
           onClick={() =>
             restoreFlow.mutate(undefined, {
               onError: (error) => onError(errorMessage(error)),
@@ -82,10 +93,10 @@ function FlowRowActions({
           }
         >
           Restore
-        </button>
+        </Button>
       ) : (
-        <button
-          type="button"
+        <Button
+          variant="ghost"
           onClick={() =>
             archiveFlow.mutate(undefined, {
               onError: (error) => onError(errorMessage(error)),
@@ -93,10 +104,10 @@ function FlowRowActions({
           }
         >
           Archive
-        </button>
+        </Button>
       )}
-      <button
-        type="button"
+      <Button
+        variant="danger"
         onClick={() => {
           if (
             window.confirm(
@@ -110,7 +121,7 @@ function FlowRowActions({
         }}
       >
         Delete
-      </button>
+      </Button>
     </div>
   );
 }
@@ -120,7 +131,6 @@ export default function AutomationListPage() {
   usePageTitle("Automation");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const nameInput = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [name, setName] = useState("");
@@ -138,13 +148,71 @@ export default function AutomationListPage() {
 
   useEffect(() => {
     if (searchParams.get("new") === "1") {
-      nameInput.current?.focus();
+      document.getElementById("new-flow-name")?.focus();
     }
   }, [searchParams]);
 
   const total = flows.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const items = useMemo(() => flows.data?.items ?? [], [flows.data]);
+
+  const flowColumns = useMemo<TableColumnDef<FlowSummary>[]>(
+    () => [
+      {
+        id: "name",
+        header: "Name",
+        accessorKey: "name",
+        cell: ({ row }) => (
+          <>
+            <Link to={`/automation/flows/${row.original.id}`}>
+              {row.original.name}
+            </Link>
+            {row.original.description ? (
+              <p className="obolargus_automation_meta">
+                {row.original.description}
+              </p>
+            ) : null}
+          </>
+        ),
+      },
+      {
+        id: "status",
+        header: "Status",
+        accessorKey: "status",
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      },
+      {
+        id: "version",
+        header: "Version",
+        cell: ({ row }) => row.original.current_version_number ?? "—",
+      },
+      {
+        id: "lastRun",
+        header: "Last run",
+        cell: ({ row }) =>
+          row.original.last_run ? (
+            <Link to={`/automation/runs/${row.original.last_run.id}`}>
+              {row.original.last_run.status}
+            </Link>
+          ) : (
+            "—"
+          ),
+      },
+      {
+        id: "updated",
+        header: "Updated",
+        cell: ({ row }) => formatInstant(row.original.updated_at),
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => (
+          <FlowRowActions flow={row.original} onError={setActionError} />
+        ),
+      },
+    ],
+    [],
+  );
 
   const create = async (templateId?: string) => {
     setActionError(null);
@@ -173,15 +241,13 @@ export default function AutomationListPage() {
           </p>
         </div>
         <div className="obolargus_automation_header__actions">
-          <label>
-            <span className="obolargus_visually_hidden">New flow name</span>
-            <input
-              ref={nameInput}
-              value={name}
-              placeholder="New flow name"
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
+          <Input
+            id="new-flow-name"
+            label="New flow name"
+            value={name}
+            placeholder="New flow name"
+            onChange={setName}
+          />
           <Button onClick={() => void create()} disabled={createFlow.isPending}>
             {createFlow.isPending ? "Creating…" : "Create blank flow"}
           </Button>
@@ -201,32 +267,31 @@ export default function AutomationListPage() {
       ) : null}
 
       <section aria-label="Filters" className="obolargus_automation_filters">
-        <label>
-          <span>Search</span>
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
+        <Input
+          id="flow-search"
+          label="Search"
+          type="search"
+          value={search}
+          onChange={(next) => {
+            setSearch(next);
+            setPage(0);
+          }}
+          placeholder="Search flows"
+        />
+        <div className="obolargus_automation_field">
+          <span className="obolargus_automation_field-label">Status</span>
+          <MultiSelect
+            options={STATUS_OPTIONS}
+            value={STATUS_OPTIONS.filter((option) => option.value === status)}
+            mode="single"
+            ariaLabel="Status"
+            placeholder="All"
+            onChange={(next) => {
+              setStatus(next[0]?.value ?? "");
               setPage(0);
             }}
-            placeholder="Search flows"
           />
-        </label>
-        <label>
-          <span>Status</span>
-          <select
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value);
-              setPage(0);
-            }}
-          >
-            <option value="">All</option>
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-          </select>
-        </label>
+        </div>
       </section>
 
       {templates.isSuccess && templates.data.items.length > 0 ? (
@@ -249,69 +314,33 @@ export default function AutomationListPage() {
           <p>No flows match the filters.</p>
         ) : null}
         {items.length > 0 ? (
-          <table className="obolargus_automation_table">
-            <thead>
-              <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Status</th>
-                <th scope="col">Version</th>
-                <th scope="col">Last run</th>
-                <th scope="col">Updated</th>
-                <th scope="col">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((flow) => (
-                <tr key={flow.id}>
-                  <td>
-                    <Link to={`/automation/flows/${flow.id}`}>{flow.name}</Link>
-                    {flow.description ? (
-                      <p className="obolargus_automation_meta">
-                        {flow.description}
-                      </p>
-                    ) : null}
-                  </td>
-                  <td>
-                    <StatusBadge status={flow.status} />
-                  </td>
-                  <td>{flow.current_version_number ?? "—"}</td>
-                  <td>
-                    {flow.last_run ? (
-                      <Link to={`/automation/runs/${flow.last_run.id}`}>
-                        {flow.last_run.status}
-                      </Link>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td>{formatInstant(flow.updated_at)}</td>
-                  <td>
-                    <FlowRowActions flow={flow} onError={setActionError} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Table
+            tableKey="automation-flows"
+            columns={flowColumns}
+            data={items}
+            enableSorting={false}
+            enableFiltering={false}
+            enablePagination={false}
+            enableColumnCustomization={false}
+          />
         ) : null}
         {pages > 1 ? (
           <nav aria-label="Flow pages" className="obolargus_automation_pager">
-            <button
-              type="button"
+            <Button
               disabled={page === 0}
               onClick={() => setPage((value) => Math.max(0, value - 1))}
             >
               Previous
-            </button>
+            </Button>
             <span>
               Page {page + 1} of {pages}
             </span>
-            <button
-              type="button"
+            <Button
               disabled={page + 1 >= pages}
               onClick={() => setPage((value) => value + 1)}
             >
               Next
-            </button>
+            </Button>
           </nav>
         ) : null}
       </section>

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Badge } from "lx_client/js/components/Badge";
+import { Button } from "lx_client/js/components/Button";
 import { useVersionsQuery } from "../../query/automationQueries";
 import { useArchiveVersionMutation } from "../../query/mutations";
 import { errorMessage, formatInstant } from "./shared";
@@ -38,7 +40,7 @@ export function VersionPanel({
             <div>
               <strong>v{version.version_number}</strong>{" "}
               {version.version_number === currentVersionNumber ? (
-                <span className="obolargus_automation_badge">current</span>
+                <Badge tone="success">current</Badge>
               ) : null}
               <p>{version.change_note ?? "No change note."}</p>
               <p className="obolargus_automation_meta">
@@ -47,8 +49,8 @@ export function VersionPanel({
               </p>
             </div>
             {version.status !== "archived" ? (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
                 onClick={() =>
                   archive.mutate(version.version_number, {
                     onError: (mutationError) =>
@@ -57,7 +59,7 @@ export function VersionPanel({
                 }
               >
                 Archive
-              </button>
+              </Button>
             ) : null}
           </li>
         ))}

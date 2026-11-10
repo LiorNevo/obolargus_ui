@@ -73,7 +73,11 @@ describe("data-load field adapters", () => {
       />,
     );
     expect(screen.getAllByLabelText("As of date")[1]).toHaveValue(
-      '{"kind":"reference","path":"inputs.as_of_date"}',
+      JSON.stringify(
+        { kind: "reference", path: "inputs.as_of_date" },
+        null,
+        2,
+      ),
     );
   });
 
@@ -103,6 +107,7 @@ describe("data-load field adapters", () => {
   });
 
   it("lists only selectable sources", async () => {
+    const user = userEvent.setup();
     renderWithQueryClient(
       <SourceSelect
         id="source"
@@ -113,8 +118,12 @@ describe("data-load field adapters", () => {
       />,
     );
     await waitFor(() =>
-      expect(screen.getByRole("option", { name: "Yahoo Finance" })).toBeInTheDocument(),
+      expect(screen.getByRole("combobox", { name: "Source" })).toBeEnabled(),
     );
+    await user.click(screen.getByRole("combobox", { name: "Source" }));
+    expect(
+      await screen.findByRole("option", { name: "Yahoo Finance" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Hidden" })).not.toBeInTheDocument();
   });
 });

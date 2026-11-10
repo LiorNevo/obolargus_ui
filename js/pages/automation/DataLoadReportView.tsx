@@ -1,3 +1,4 @@
+import { CodeBlock } from "lx_client/js/components/CodeBlock";
 import { LoadReport } from "../data-load/LoadReport";
 import { RangeReport } from "../data-load/RangeReport";
 import type { LoadReport as LoadReportData, RangeReport as RangeReportData } from "../../types/dataLoad";
@@ -35,7 +36,9 @@ export function DataLoadReportView({ payload }: { payload: unknown }) {
     <section aria-label="Data-load report">
       <h2>Data-load report</h2>
       <p>This payload does not contain a recognizable load report.</p>
-      <pre>{JSON.stringify(payload, null, 2)}</pre>
+      <CodeBlock ariaLabel="Unrecognized data-load payload">
+        {JSON.stringify(payload, null, 2)}
+      </CodeBlock>
     </section>
   );
 }

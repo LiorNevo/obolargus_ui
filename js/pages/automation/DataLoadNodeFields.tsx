@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, type ComponentType } from "react";
+import { MultiSelect } from "lx_client/js/components/MultiSelect";
+import type { SelectOption } from "lx_client/js/components/MultiSelect/types";
+import { TextArea } from "lx_client/js/components/TextArea";
 import {
   registerComponent,
   type FormFieldProps,
@@ -38,19 +41,17 @@ function identifiersToText(value: unknown): string {
 export const IdentifierBatch = ((props: FormFieldProps) => {
   const text = identifiersToText(props.value);
   return (
-    <div className="obolargus_automation_field">
-      <label htmlFor={props.id}>{String(props.schema.title ?? "Identifiers")}</label>
-      <textarea
-        id={props.id}
-        rows={5}
-        value={text}
-        disabled={props.disabled}
-        placeholder={"TICKER:XNAS:AAPL\nTICKER:XNAS:MSFT"}
-        onChange={(event) =>
-          props.onChange(parseIdentifiers(event.target.value))
-        }
-      />
-    </div>
+    <TextArea
+      id={props.id}
+      label={String(props.schema.title ?? "Identifiers")}
+      value={text}
+      rows={5}
+      disabled={props.disabled}
+      required={props.required}
+      errors={props.errors}
+      placeholder={"TICKER:XNAS:AAPL\nTICKER:XNAS:MSFT"}
+      onChange={(next) => props.onChange(parseIdentifiers(next))}
+    />
   );
 }) as ComponentType<FormFieldProps>;
 
@@ -61,68 +62,68 @@ export const DateOrExpression = ((props: FormFieldProps) => {
     typeof value === "string"
       ? value
       : value && typeof value === "object"
-        ? JSON.stringify(value)
+        ? JSON.stringify(value, null, 2)
         : "";
+  const rows = value && typeof value === "object" ? 4 : 2;
   return (
-    <div className="obolargus_automation_field">
-      <label htmlFor={props.id}>
-        {String(props.schema.title ?? "Date")}
-      </label>
-      <input
-        id={props.id}
-        type="text"
-        value={text}
-        disabled={props.disabled}
-        placeholder="2026-01-02 or an expression object"
-        onChange={(event) => {
-          const next = event.target.value;
-          const trimmed = next.trim();
-          if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-            try {
-              props.onChange(JSON.parse(trimmed));
-              return;
-            } catch {
-              // Keep the partial text as a string until it becomes valid JSON.
-            }
+    <TextArea
+      id={props.id}
+      label={String(props.schema.title ?? "Date")}
+      value={text}
+      rows={rows}
+      disabled={props.disabled}
+      required={props.required}
+      errors={props.errors}
+      placeholder="2026-01-02 or an expression object"
+      onChange={(next) => {
+        const trimmed = next.trim();
+        if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+          try {
+            props.onChange(JSON.parse(trimmed));
+            return;
+          } catch {
+            // Keep the partial text as a string until it becomes valid JSON.
           }
-          props.onChange(next);
-        }}
-      />
-      {value && typeof value === "object" ? (
-        <>
-          <p className="obolargus_automation_meta">Expression object</p>
-          <code className="obolargus_automation_expression">
-            {JSON.stringify(value, null, 2)}
-          </code>
-        </>
-      ) : null}
-    </div>
+        }
+        props.onChange(next);
+      }}
+    />
   );
 }) as ComponentType<FormFieldProps>;
 
 /** Select adapter for the configured data-load sources. */
 export const SourceSelect = ((props: FormFieldProps) => {
   const sources = useQuery(sourcesQueryOptions("market_data"));
-  const options = useMemo(
-    () => sources.data?.sources.filter((source) => source.selectable_for_domain) ?? [],
-    [sources.data],
-  );
+  const label = String(props.schema.title ?? "Source");
+  const options = useMemo<SelectOption[]>(() => {
+    const selectable =
+      sources.data?.sources.filter((source) => source.selectable_for_domain) ??
+      [];
+    return [
+      { id: 0, label: "Any available source", value: "" },
+      ...selectable.map((source, index) => ({
+        id: index + 1,
+        label: source.display_name,
+        value: source.source_id,
+      })),
+    ];
+  }, [sources.data]);
+  const selected = useMemo(() => {
+    const current = typeof props.value === "string" ? props.value : "";
+    return options.filter((option) => option.value === current);
+  }, [options, props.value]);
   return (
     <div className="obolargus_automation_field">
-      <label htmlFor={props.id}>{String(props.schema.title ?? "Source")}</label>
-      <select
-        id={props.id}
-        value={typeof props.value === "string" ? props.value : ""}
+      <span className="obolargus_automation_field-label">{label}</span>
+      <MultiSelect
+        options={options}
+        value={selected}
+        mode="single"
+        ariaLabel={label}
+        placeholder="Any available source"
         disabled={props.disabled || sources.isPending}
-        onChange={(event) => props.onChange(event.target.value || null)}
-      >
-        <option value="">Any available source</option>
-        {options.map((source) => (
-          <option key={source.source_id} value={source.source_id}>
-            {source.display_name}
-          </option>
-        ))}
-      </select>
+        onChange={(next) => props.onChange(next[0]?.value || null)}
+      />
       {sources.isError ? (
         <p role="alert">Could not load the source catalog.</p>
       ) : null}

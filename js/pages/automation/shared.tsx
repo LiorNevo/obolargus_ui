@@ -1,5 +1,6 @@
 /** Shared helpers for the automation pages. */
 
+import { Badge, type BadgeTone } from "lx_client/js/components/Badge";
 import { AutomationApiError } from "../../api/automation";
 
 /** Normalizes any thrown value to an operator-facing message. */
@@ -24,11 +25,28 @@ export function formatDuration(value: number | null | undefined): string {
   return `${(value / 1_000).toFixed(1)} s`;
 }
 
+function statusTone(status: string): BadgeTone {
+  switch (status) {
+    case "succeeded":
+    case "active":
+    case "published":
+      return "success";
+    case "partial":
+    case "draft":
+      return "warning";
+    case "failed":
+    case "cancelled":
+    case "interrupted":
+      return "danger";
+    case "running":
+    case "queued":
+      return "info";
+    default:
+      return "neutral";
+  }
+}
+
 /** A small status pill shared by the list and detail pages. */
 export function StatusBadge({ status }: { status: string }) {
-  return (
-    <span className={`obolargus_automation_status obolargus_automation_status--${status}`}>
-      {status}
-    </span>
-  );
+  return <Badge tone={statusTone(status)}>{status}</Badge>;
 }

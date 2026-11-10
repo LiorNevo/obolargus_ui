@@ -1,6 +1,13 @@
+import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "lx_client/js/navigation/usePageTitle";
+import { Button } from "lx_client/js/components/Button";
+import { MultiSelect } from "lx_client/js/components/MultiSelect";
+import type { SelectOption } from "lx_client/js/components/MultiSelect/types";
 import { Skeleton } from "lx_client/js/components/Skeleton";
+import { Table } from "lx_client/js/components/Table";
+import type { TableColumnDef } from "lx_client/js/components/Table/types";
+import type { RunSummary } from "../../types/automation";
 import { useRunsQuery } from "../../query/automationQueries";
 import {
   errorMessage,
@@ -18,6 +25,15 @@ const TERMINAL = new Set([
   "cancelled",
   "interrupted",
 ]);
+
+const STATUS_OPTIONS: SelectOption[] = [
+  { id: 0, label: "All", value: "" },
+  ...[...TERMINAL, "queued", "running"].map((value, index) => ({
+    id: index + 1,
+    label: value,
+    value,
+  })),
+];
 
 /** Run history with flow and status filters. */
 export default function RunListPage() {
@@ -45,6 +61,64 @@ export default function RunListPage() {
   const total = runs.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  const runColumns = useMemo<TableColumnDef<RunSummary>[]>(
+    () => [
+      {
+        id: "run",
+        header: "Run",
+        cell: ({ row }) => (
+          <Link to={`/automation/runs/${row.original.id}`}>
+            {row.original.id.slice(0, 8)}
+          </Link>
+        ),
+      },
+      {
+        id: "flow",
+        header: "Flow",
+        cell: ({ row }) => (
+          <>
+            <Link to={`/automation/flows/${row.original.flow_id}`}>
+              {row.original.flow_name}
+            </Link>
+            {row.original.flow_version_number ? (
+              <span className="obolargus_automation_meta">
+                {" "}
+                v{row.original.flow_version_number}
+              </span>
+            ) : null}
+          </>
+        ),
+      },
+      {
+        id: "trigger",
+        header: "Trigger",
+        accessorKey: "trigger_kind",
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      },
+      {
+        id: "started",
+        header: "Started",
+        cell: ({ row }) =>
+          formatInstant(row.original.started_at ?? row.original.queued_at),
+      },
+      {
+        id: "duration",
+        header: "Duration",
+        cell: ({ row }) => formatDuration(row.original.duration_ms),
+      },
+      {
+        id: "messages",
+        header: "Messages",
+        accessorKey: "message_count",
+      },
+    ],
+    [],
+  );
+
   return (
     <main className="obolargus_automation_page" aria-labelledby="runs-title">
       <header className="obolargus_automation_header">
@@ -56,24 +130,23 @@ export default function RunListPage() {
       </header>
 
       <section className="obolargus_automation_filters" aria-label="Filters">
-        <label>
-          <span>Status</span>
-          <select
-            value={status ?? ""}
-            onChange={(event) => setParam("status", event.target.value)}
-          >
-            <option value="">All</option>
-            {[...TERMINAL, "queued", "running"].map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="obolargus_automation_field">
+          <span className="obolargus_automation_field-label">Status</span>
+          <MultiSelect
+            options={STATUS_OPTIONS}
+            value={STATUS_OPTIONS.filter(
+              (option) => option.value === (status ?? ""),
+            )}
+            mode="single"
+            ariaLabel="Status"
+            placeholder="All"
+            onChange={(next) => setParam("status", next[0]?.value ?? "")}
+          />
+        </div>
         {flowId ? (
-          <button type="button" onClick={() => setParam("flow_id", "")}>
+          <Button variant="ghost" onClick={() => setParam("flow_id", "")}>
             Clear flow filter
-          </button>
+          </Button>
         ) : null}
       </section>
 
@@ -86,68 +159,33 @@ export default function RunListPage() {
       {runs.isSuccess && (runs.data.items.length === 0 ? (
         <p>No runs match the filters.</p>
       ) : (
-        <table className="obolargus_automation_table">
-          <thead>
-            <tr>
-              <th scope="col">Run</th>
-              <th scope="col">Flow</th>
-              <th scope="col">Trigger</th>
-              <th scope="col">Status</th>
-              <th scope="col">Started</th>
-              <th scope="col">Duration</th>
-              <th scope="col">Messages</th>
-            </tr>
-          </thead>
-          <tbody>
-            {runs.data.items.map((run) => (
-              <tr key={run.id}>
-                <td>
-                  <Link to={`/automation/runs/${run.id}`}>
-                    {run.id.slice(0, 8)}
-                  </Link>
-                </td>
-                <td>
-                  <Link to={`/automation/flows/${run.flow_id}`}>
-                    {run.flow_name}
-                  </Link>
-                  {run.flow_version_number ? (
-                    <span className="obolargus_automation_meta">
-                      {" "}
-                      v{run.flow_version_number}
-                    </span>
-                  ) : null}
-                </td>
-                <td>{run.trigger_kind}</td>
-                <td>
-                  <StatusBadge status={run.status} />
-                </td>
-                <td>{formatInstant(run.started_at ?? run.queued_at)}</td>
-                <td>{formatDuration(run.duration_ms)}</td>
-                <td>{run.message_count}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Table
+          tableKey="automation-runs"
+          columns={runColumns}
+          data={runs.data.items}
+          enableSorting={false}
+          enableFiltering={false}
+          enablePagination={false}
+          enableColumnCustomization={false}
+        />
       ))}
       {pages > 1 ? (
         <nav aria-label="Run pages" className="obolargus_automation_pager">
-          <button
-            type="button"
+          <Button
             disabled={page === 0}
             onClick={() => setParam("page", String(page - 1))}
           >
             Previous
-          </button>
+          </Button>
           <span>
             Page {page + 1} of {pages}
           </span>
-          <button
-            type="button"
+          <Button
             disabled={page + 1 >= pages}
             onClick={() => setParam("page", String(page + 1))}
           >
             Next
-          </button>
+          </Button>
         </nav>
       ) : null}
     </main>

@@ -1,3 +1,4 @@
+import { CodeBlock } from "lx_client/js/components/CodeBlock";
 import { useAuditQuery } from "../../query/automationQueries";
 import { errorMessage, formatInstant } from "./shared";
 
@@ -25,7 +26,9 @@ export function AuditPanel({ flowId }: { flowId: string }) {
               {formatInstant(event.created_at)}
             </span>
             {event.metadata ? (
-              <pre>{JSON.stringify(event.metadata, null, 2)}</pre>
+              <CodeBlock ariaLabel="Audit metadata">
+                {JSON.stringify(event.metadata, null, 2)}
+              </CodeBlock>
             ) : null}
           </li>
         ))}

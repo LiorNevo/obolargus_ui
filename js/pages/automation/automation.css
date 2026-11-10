@@ -71,14 +71,10 @@
   white-space: nowrap;
 }
 
-.obolargus_automation_flowbar__subflow button {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-decoration: underline;
-  cursor: var(--cursor-pointer);
+.obolargus_automation_flowbar__subflow .lx_client_button {
+  min-height: 20px;
+  padding: 0 6px;
+  font-size: 0.72rem;
 }
 
 .obolargus_automation_flowbar__actions {
@@ -161,17 +157,6 @@
   background: color-mix(in srgb, var(--border, #1e293b) 35%, var(--bg, #0b1220));
 }
 
-.theme-dark .obolargus_automation_modal .obolargus_automation_panel button {
-  background: var(--bg, #0b1220);
-  color: var(--fg, #e2e8f0);
-  border-color: var(--border, #1e293b);
-}
-
-.theme-dark .obolargus_automation_modal .obolargus_automation_panel button:hover {
-  border-color: var(--accent, #22d3ee);
-  background: color-mix(in srgb, var(--accent, #22d3ee) 12%, transparent);
-}
-
 .obolargus_automation_subflow_list {
   list-style: none;
   margin: 0 0 12px;
@@ -213,24 +198,18 @@
   gap: 8px;
 }
 
-.obolargus_automation_header__actions label,
-.obolargus_automation_filters label,
 .obolargus_automation_field {
   display: grid;
   gap: 4px;
   font-size: 0.85rem;
 }
 
-.obolargus_automation_header__actions input,
-.obolargus_automation_filters input,
-.obolargus_automation_filters select,
-.obolargus_automation_field input,
-.obolargus_automation_field select,
-.obolargus_automation_field textarea {
-  font: inherit;
-  padding: 5px 8px;
-  border: 1px solid var(--color-border, #d0d5dd);
-  border-radius: 4px;
+.obolargus_automation_field-label {
+  color: var(--fg, var(--color-text, #101828));
+  font-family: var(--font-family);
+  font-size: var(--font-size-small, 0.75rem);
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .obolargus_automation_filters {
@@ -240,8 +219,13 @@
   align-items: flex-end;
 }
 
+.obolargus_automation_filters .obolargus-input {
+  flex: 1 1 20rem;
+  max-width: 28rem;
+}
+
 .obolargus_automation_meta {
-  color: var(--color-text-muted, #475467);
+  color: color-mix(in srgb, var(--fg, #101828) 62%, transparent);
   font-size: 0.8rem;
 }
 
@@ -263,43 +247,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid #fecdca;
-  background: #fef3f2;
-  color: #b42318;
+  border: 1px solid var(--error, #b42318);
+  background: color-mix(in srgb, var(--error, #b42318) 14%, var(--bg, #ffffff));
+  color: var(--error, #b42318);
   padding: 8px 12px;
   border-radius: 6px;
-}
-
-.obolargus_automation_status {
-  display: inline-block;
-  padding: 1px 8px;
-  border-radius: 999px;
-  border: 1px solid #d0d5dd;
-  font-size: 0.75rem;
-  background: #f9fafb;
-}
-
-.obolargus_automation_status--succeeded {
-  border-color: #abefc6;
-  background: #ecfdf3;
-  color: #067647;
-}
-.obolargus_automation_status--partial {
-  border-color: #fedf89;
-  background: #fffaeb;
-  color: #b54708;
-}
-.obolargus_automation_status--failed,
-.obolargus_automation_status--cancelled,
-.obolargus_automation_status--interrupted {
-  border-color: #fecdca;
-  background: #fef3f2;
-  color: #b42318;
-}
-.obolargus_automation_status--running {
-  border-color: #b2ddff;
-  background: #eff8ff;
-  color: #175cd3;
 }
 
 .obolargus_automation_templates ul {
@@ -325,43 +277,11 @@
   font-size: 1rem;
 }
 
-.obolargus_automation_table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.obolargus_automation_table th,
-.obolargus_automation_table td {
-  text-align: left;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--color-border, #eaecf0);
-  vertical-align: top;
-}
-
-.obolargus_automation_table th {
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--color-text-muted, #475467);
-}
-
 .obolargus_automation_row_actions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
-}
-
-.obolargus_automation_row_actions button,
-.obolargus_automation_panel button,
-.obolargus_automation_dialog button {
-  font: inherit;
-  padding: 3px 10px;
-  border: 1px solid var(--color-border, #d0d5dd);
-  border-radius: 4px;
-  background: #ffffff;
-  cursor: var(--cursor-pointer);
 }
 
 .obolargus_automation_pager {
@@ -372,7 +292,7 @@
 }
 
 .obolargus_automation_panel {
-  border: 1px solid var(--color-border, #d0d5dd);
+  border: 1px solid var(--border, var(--color-border, #d0d5dd));
   border-radius: 8px;
   padding: 12px 16px;
 }
@@ -416,16 +336,6 @@
   margin: 2px 0;
 }
 
-.obolargus_automation_badge {
-  border: 1px solid #abefc6;
-  background: #ecfdf3;
-  color: #067647;
-  border-radius: 999px;
-  padding: 0 6px;
-  font-size: 0.7rem;
-}
-
-/* Flow settings tabs mirror the editor's flat, segmented workspace tabs. */
 .obolargus_automation_modal
   .obolargus_automation_settings_tabs.lx_client_tab_panel_container--plain {
   display: flex;
@@ -588,29 +498,18 @@
   align-items: start;
 }
 
-.obolargus_automation_timeline button {
-  width: 100%;
+.obolargus_automation_timeline__button {
   display: grid;
   gap: 2px;
+  height: auto;
+  padding: var(--space-2);
   text-align: left;
+  justify-content: flex-start;
 }
 
-.obolargus_automation_timeline button[aria-pressed="true"] {
-  border-color: #175cd3;
-  background: #eff8ff;
-}
-
-.obolargus_automation_messages pre,
-.obolargus_automation_logs pre,
-.obolargus_automation_audit pre,
-.obolargus_automation_error pre {
-  margin: 4px 0;
-  padding: 8px;
-  background: #f9fafb;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  overflow: auto;
-  max-height: 240px;
+.obolargus_automation_timeline__button[aria-pressed="true"] {
+  border-color: var(--accent, #175cd3);
+  background: color-mix(in srgb, var(--accent, #175cd3) 14%, transparent);
 }
 
 .obolargus_automation_messages p,
@@ -626,19 +525,4 @@
   .obolargus_automation_header {
     flex-direction: column;
   }
-}
-
-.obolargus_automation_run_inputs {
-  display: grid;
-  gap: 4px;
-  margin: 12px 0 8px;
-  font-size: 0.85rem;
-}
-
-.obolargus_automation_run_inputs textarea {
-  font: inherit;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  padding: 6px 8px;
-  border: 1px solid var(--color-border, #d0d5dd);
-  border-radius: 4px;
 }

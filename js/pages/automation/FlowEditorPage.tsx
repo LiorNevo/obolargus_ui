@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { usePageTitle } from "lx_client/js/navigation/usePageTitle";
 import { Button } from "lx_client/js/components/Button";
+import { Input } from "lx_client/js/components/Input";
 import { Modal } from "lx_client/js/components/Modal";
+import { TextArea } from "lx_client/js/components/TextArea";
 import { Skeleton } from "lx_client/js/components/Skeleton";
 import TabPanel from "lx_client/js/components/TabPanel";
 import {
@@ -938,15 +940,15 @@ export default function FlowEditorPage() {
           {activeSubflow ? (
             <span className="obolargus_automation_flowbar__subflow">
               Subflow <strong>{activeSubflow.name}</strong>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
                 onClick={() => {
                   setEditingSubflow(null);
                   setSelection({ nodeIds: [], wireIds: [] });
                 }}
               >
                 Done
-              </button>
+              </Button>
             </span>
           ) : null}
         </div>
@@ -1084,14 +1086,13 @@ export default function FlowEditorPage() {
           Current published version:{" "}
           {publishedVersion ? `v${publishedVersion}` : "none"}.
         </p>
-        <label className="obolargus_automation_field">
-          <span>Change note</span>
-          <input
-            value={changeNote}
-            onChange={(event) => setChangeNote(event.target.value)}
-            placeholder="What changed?"
-          />
-        </label>
+        <Input
+          id="publish-change-note"
+          label="Change note"
+          value={changeNote}
+          onChange={setChangeNote}
+          placeholder="What changed?"
+        />
         {publishError ? (
           <p className="obolargus_automation_error" role="alert">
             {publishError}
@@ -1138,17 +1139,16 @@ export default function FlowEditorPage() {
             Publish a version before running this flow.
           </p>
         ) : null}
-        <label className="obolargus_automation_field">
-          <span>Run inputs (JSON)</span>
-          <textarea
-            rows={8}
-            value={runInputs}
-            onChange={(event) => setRunInputs(event.target.value)}
-            placeholder={
-              '{\n  "identifiers": [{"scheme": "TICKER", "value": "XNAS:AAPL"}]\n}'
-            }
-          />
-        </label>
+        <TextArea
+          id="run-inputs"
+          label="Run inputs (JSON)"
+          rows={8}
+          value={runInputs}
+          onChange={setRunInputs}
+          placeholder={
+            '{\n  "identifiers": [{"scheme": "TICKER", "value": "XNAS:AAPL"}]\n}'
+          }
+        />
         {runError ? (
           <p className="obolargus_automation_error" role="alert">
             {runError}

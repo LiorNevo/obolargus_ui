@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { usePageTitle } from "lx_client/js/navigation/usePageTitle";
+import { Button } from "lx_client/js/components/Button";
+import { CodeBlock } from "lx_client/js/components/CodeBlock";
 import { Skeleton } from "lx_client/js/components/Skeleton";
 import {
   useRunEvents,
@@ -110,8 +112,8 @@ export default function RunDetailPage() {
           </p>
         </div>
         <div className="obolargus_automation_header__actions">
-          <button
-            type="button"
+          <Button
+            variant="danger"
             disabled={terminal || cancel.isPending}
             onClick={() =>
               cancel.mutate(undefined, {
@@ -121,9 +123,8 @@ export default function RunDetailPage() {
             }
           >
             Cancel run
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             disabled={!terminal || retry.isPending}
             onClick={() =>
               retry.mutate(undefined, {
@@ -133,7 +134,7 @@ export default function RunDetailPage() {
             }
           >
             Retry
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -145,7 +146,9 @@ export default function RunDetailPage() {
       {run.data.error ? (
         <section className="obolargus_automation_error" role="alert">
           <h2>Terminal error</h2>
-          <pre>{pretty(run.data.error)}</pre>
+          <CodeBlock ariaLabel="Terminal error" tone="error">
+            {pretty(run.data.error)}
+          </CodeBlock>
         </section>
       ) : null}
 
@@ -155,8 +158,10 @@ export default function RunDetailPage() {
           <ol className="obolargus_automation_timeline">
             {run.data.nodes.map((node) => (
               <li key={`${node.node_id}:${node.attempt}`}>
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  block
+                  className="obolargus_automation_timeline__button"
                   aria-pressed={nodeFilter === node.node_id}
                   onClick={() =>
                     setNodeFilter((current) =>
@@ -171,7 +176,7 @@ export default function RunDetailPage() {
                     {formatDuration(node.duration_ms)} · in {node.messages_in} /
                     out {node.messages_out}
                   </span>
-                </button>
+                </Button>
               </li>
             ))}
           </ol>
@@ -181,9 +186,9 @@ export default function RunDetailPage() {
           <header className="obolargus_automation_panel__header">
             <h2>Messages</h2>
             {nodeFilter ? (
-              <button type="button" onClick={() => setNodeFilter(undefined)}>
+              <Button variant="ghost" onClick={() => setNodeFilter(undefined)}>
                 Clear node filter
-              </button>
+              </Button>
             ) : null}
           </header>
           {messages.isPending ? <p>Loading messages…</p> : null}
@@ -204,11 +209,11 @@ export default function RunDetailPage() {
                   {message.size_bytes} bytes
                   {message.truncated ? " · truncated" : ""}
                 </p>
-                <pre>
+                <CodeBlock ariaLabel="Message payload">
                   {message.truncated
                     ? "payload omitted because it exceeds the size limit"
                     : pretty(message.payload)}
-                </pre>
+                </CodeBlock>
               </li>
             ))}
           </ul>

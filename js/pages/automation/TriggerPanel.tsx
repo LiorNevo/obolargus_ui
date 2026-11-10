@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "lx_client/js/components/Button";
 import { useTriggersQuery } from "../../query/automationQueries";
 import {
   useCreateTriggerMutation,
@@ -30,8 +31,7 @@ export function TriggerPanel({ flowId }: { flowId: string }) {
     <section className="obolargus_automation_panel" aria-label="Triggers">
       <header className="obolargus_automation_panel__header">
         <h2>Triggers</h2>
-        <button
-          type="button"
+        <Button
           onClick={() =>
             create.mutate(undefined, {
               onError: (mutationError) =>
@@ -41,7 +41,7 @@ export function TriggerPanel({ flowId }: { flowId: string }) {
           disabled={create.isPending}
         >
           {create.isPending ? "Creating…" : "Add API trigger"}
-        </button>
+        </Button>
       </header>
       {error ? (
         <p className="obolargus_automation_error" role="alert">
@@ -89,8 +89,8 @@ export function TriggerPanel({ flowId }: { flowId: string }) {
               </p>
             </div>
             <div className="obolargus_automation_row_actions">
-              <button
-                type="button"
+              <Button
+                variant="ghost"
                 onClick={() =>
                   update.mutate(
                     { triggerId: trigger.id, enabled: !trigger.enabled },
@@ -102,10 +102,10 @@ export function TriggerPanel({ flowId }: { flowId: string }) {
                 }
               >
                 {trigger.enabled ? "Disable" : "Enable"}
-              </button>
+              </Button>
               {trigger.kind === "api" ? (
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
                   onClick={() =>
                     invoke.mutate(
                       {
@@ -123,10 +123,10 @@ export function TriggerPanel({ flowId }: { flowId: string }) {
                   }
                 >
                   Invoke
-                </button>
+                </Button>
               ) : null}
-              <button
-                type="button"
+              <Button
+                variant="danger"
                 onClick={() =>
                   remove.mutate(trigger.id, {
                     onError: (mutationError) =>
@@ -135,7 +135,7 @@ export function TriggerPanel({ flowId }: { flowId: string }) {
                 }
               >
                 Delete
-              </button>
+              </Button>
             </div>
           </li>
         ))}
