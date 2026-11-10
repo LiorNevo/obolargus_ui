@@ -415,7 +415,7 @@
   color: inherit;
   font: inherit;
   text-align: left;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .obolargus_search_result_toggle:hover {
@@ -519,7 +519,7 @@
 }
 
 .obolargus_search_conflicts summary {
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   color: var(--warning);
   font-weight: 600;
 }
@@ -536,7 +536,7 @@
 }
 
 .obolargus_search_sources summary {
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   font-weight: 600;
 }
 

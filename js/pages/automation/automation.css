@@ -78,7 +78,7 @@
   color: inherit;
   font: inherit;
   text-decoration: underline;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .obolargus_automation_flowbar__actions {
@@ -337,7 +337,7 @@
   border: 1px solid var(--color-border, #d0d5dd);
   border-radius: 4px;
   background: #ffffff;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .obolargus_automation_pager {
@@ -472,7 +472,7 @@
   padding: 0;
   overflow: visible;
   opacity: 1;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .obolargus_automation_modal
