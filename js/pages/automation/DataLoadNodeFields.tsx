@@ -89,7 +89,12 @@ export const DateOrExpression = ((props: FormFieldProps) => {
         }}
       />
       {value && typeof value === "object" ? (
-        <p className="obolargus_automation_meta">Expression value</p>
+        <>
+          <p className="obolargus_automation_meta">Expression object</p>
+          <code className="obolargus_automation_expression">
+            {JSON.stringify(value, null, 2)}
+          </code>
+        </>
       ) : null}
     </div>
   );
