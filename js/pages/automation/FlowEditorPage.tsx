@@ -1043,7 +1043,7 @@ export default function FlowEditorPage() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         title="Flow settings"
-        className="obolargus_automation_modal"
+        className="obolargus_automation_modal obolargus_automation_modal--settings"
         footer={<Button onClick={() => setSettingsOpen(false)}>Close</Button>}
       >
         <TabPanel
