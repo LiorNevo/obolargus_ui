@@ -74,3 +74,123 @@ describe("query keys", () => {
     expect(queryKeys.assets.allSearches()).toEqual(["assets", "search"]);
   });
 });
+
+describe("automation query keys", () => {
+  it("builds stable flows, versions, runs, and trigger identities", () => {
+    const filters = { status: "active", search: "sales", limit: 50, offset: 0 };
+    expect(queryKeys.automation.nodeTypes()).toEqual([
+      "automation",
+      "node-types",
+    ]);
+    expect(queryKeys.automation.templates()).toEqual([
+      "automation",
+      "templates",
+    ]);
+    expect(queryKeys.automation.template("tpl")).toEqual([
+      "automation",
+      "templates",
+      "tpl",
+    ]);
+    expect(queryKeys.automation.flowList(filters)).toEqual([
+      "automation",
+      "flows",
+      "list",
+      filters,
+    ]);
+    expect(queryKeys.automation.allFlowLists()).toEqual([
+      "automation",
+      "flows",
+      "list",
+    ]);
+    expect(queryKeys.automation.flow("f1")).toEqual([
+      "automation",
+      "flows",
+      "detail",
+      "f1",
+    ]);
+    expect(queryKeys.automation.allFlows()).toEqual(["automation", "flows"]);
+    expect(queryKeys.automation.versions("f1")).toEqual([
+      "automation",
+      "flows",
+      "f1",
+      "versions",
+    ]);
+    expect(queryKeys.automation.version("f1", 2)).toEqual([
+      "automation",
+      "flows",
+      "f1",
+      "versions",
+      2,
+    ]);
+    expect(queryKeys.automation.audit("f1")).toEqual([
+      "automation",
+      "flows",
+      "f1",
+      "audit",
+    ]);
+    expect(queryKeys.automation.context("f1")).toEqual([
+      "automation",
+      "flows",
+      "f1",
+      "context",
+    ]);
+    expect(queryKeys.automation.triggers("f1")).toEqual([
+      "automation",
+      "flows",
+      "f1",
+      "triggers",
+    ]);
+
+    const runFilters = {
+      flow_id: "f1",
+      status: "failed",
+      trigger_kind: "api",
+      limit: 10,
+      offset: 20,
+    };
+    expect(queryKeys.automation.runList(runFilters)).toEqual([
+      "automation",
+      "runs",
+      "list",
+      runFilters,
+    ]);
+    expect(queryKeys.automation.allRunLists()).toEqual([
+      "automation",
+      "runs",
+      "list",
+    ]);
+    expect(queryKeys.automation.run("r1")).toEqual([
+      "automation",
+      "runs",
+      "detail",
+      "r1",
+    ]);
+    expect(queryKeys.automation.runMessages("r1", "n1")).toEqual([
+      "automation",
+      "runs",
+      "r1",
+      "messages",
+      "n1",
+    ]);
+    expect(queryKeys.automation.runMessages("r1")).toEqual([
+      "automation",
+      "runs",
+      "r1",
+      "messages",
+      null,
+    ]);
+    expect(queryKeys.automation.runLogs("r1")).toEqual([
+      "automation",
+      "runs",
+      "r1",
+      "logs",
+    ]);
+    expect(queryKeys.automation.runNode("r1", "n1")).toEqual([
+      "automation",
+      "runs",
+      "r1",
+      "nodes",
+      "n1",
+    ]);
+  });
+});
