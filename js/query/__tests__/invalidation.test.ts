@@ -1,5 +1,6 @@
 import { createTestQueryClient } from "../client";
 import {
+  invalidateAfterHistoryLoad,
   invalidateAfterLoad,
   invalidateAfterProgressTerminal,
   invalidateAfterSourceToggle,
@@ -185,6 +186,35 @@ describe("cache invalidation", () => {
     expect(
       client.getQueryState(queryKeys.dataLoad.progress("group-1"))
         ?.isInvalidated,
+    ).toBe(true);
+  });
+});
+
+
+describe("invalidateAfterHistoryLoad", () => {
+  it("invalidates only the affected series unless an asset was created", async () => {
+    const client = createTestQueryClient();
+    seed(client);
+
+    await invalidateAfterHistoryLoad(client, "asset-1");
+
+    expect(
+      client.getQueryState(
+        queryKeys.marketSeries.detail("asset-1", "2026-10-01", "2026-10-02"),
+      )?.isInvalidated,
+    ).toBe(true);
+    expect(
+      client.getQueryState(
+        queryKeys.marketSeries.detail("asset-2", "2026-10-01", "2026-10-02"),
+      )?.isInvalidated,
+    ).toBe(false);
+    expect(
+      client.getQueryState(queryKeys.assets.search("Apple", 20))?.isInvalidated,
+    ).toBe(false);
+
+    await invalidateAfterHistoryLoad(client, "asset-2", { createdAssets: true });
+    expect(
+      client.getQueryState(queryKeys.assets.search("Apple", 20))?.isInvalidated,
     ).toBe(true);
   });
 });

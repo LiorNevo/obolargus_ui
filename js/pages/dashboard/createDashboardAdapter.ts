@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type {
   AssetOption,
+  ChartDataAdapter,
   DailyBarSeries,
   DashboardDataAdapter,
   DateRange,
@@ -28,8 +29,10 @@ const defaultApi: DashboardApi = { searchAssets, loadSeriesPage };
 export function createDashboardAdapter(
   queryClient: QueryClient,
   api: DashboardApi = defaultApi,
+  charts?: ChartDataAdapter,
 ): DashboardDataAdapter {
   return {
+    ...(charts ? { charts } : {}),
     searchAssets(
       query: string,
       options: { signal: AbortSignal; limit?: number },

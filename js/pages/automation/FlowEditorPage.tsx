@@ -710,7 +710,7 @@ export default function FlowEditorPage() {
       setRunError("Publish a version before running this flow.");
       return;
     }
-    let inputs: unknown = {};
+    let inputs: unknown;
     try {
       inputs = runInputs.trim() ? JSON.parse(runInputs) : {};
     } catch {

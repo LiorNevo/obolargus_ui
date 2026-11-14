@@ -93,19 +93,14 @@ body,
   padding: 0 4px 8px;
 }
 
-/* The dashboard fills the shell's main area. The provenance line sits above it
-   in a flex column so the dashboard takes only the remaining height instead of
-   adding its own 100% height on top of the line. */
+/* The dashboard fills the shell's main area. Provenance is rendered inside the
+   dashboard topbar, so the page body needs no separate status row. */
 .obolargus_dashboard_page {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
   overflow: hidden;
-}
-
-.obolargus_dashboard_page > .obolargus_read_status {
-  flex: 0 0 auto;
 }
 
 .obolargus_dashboard_page_body {

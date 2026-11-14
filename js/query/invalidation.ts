@@ -117,3 +117,25 @@ export async function invalidateAfterProgressTerminal(
     }),
   ]);
 }
+
+/** Invalidates the reads affected by a bounded chart history load. */
+export async function invalidateAfterHistoryLoad(
+  client: QueryClient,
+  assetId: string,
+  options: { createdAssets?: boolean } = {},
+): Promise<void> {
+  const tasks: Array<Promise<void>> = [
+    client.invalidateQueries({
+      queryKey: queryKeys.marketSeries.forAsset(assetId),
+    }),
+  ];
+  if (options.createdAssets) {
+    tasks.push(
+      client.invalidateQueries({ queryKey: queryKeys.assets.allSearches() }),
+      client.invalidateQueries({
+        queryKey: queryKeys.dataLoad.allIdentifierSearches(),
+      }),
+    );
+  }
+  await Promise.all(tasks);
+}

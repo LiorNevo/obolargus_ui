@@ -133,7 +133,7 @@ describe("DataLoadPage render isolation", () => {
     expect(before).toBeGreaterThan(0);
 
     await user.click(
-      screen.getByRole("button", { name: "As-of date (UTC)" }),
+      screen.getByRole("button", { name: /As-of date \(UTC\)/ }),
     );
     const day = firstOfMonthLabel();
     fireEvent.click(screen.getByRole("gridcell", { name: day }));

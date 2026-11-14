@@ -9,6 +9,7 @@ import type { DashboardDataAdapter } from "lx_client/js/components/Dashboard";
 import { OfflineReadSummary } from "../offline/LastUpdatedLabel";
 import { queryKeys } from "../query/keys";
 import { createDashboardAdapter } from "./dashboard/createDashboardAdapter";
+import { createChartAdapter } from "./dashboard/createChartAdapter";
 
 /**
  * Clears a persisted instrument that no longer resolves to an asset.
@@ -38,6 +39,7 @@ function createResilientAdapter(
   const base = createDashboardAdapter(queryClient);
   return {
     ...base,
+    charts: createChartAdapter(queryClient),
     async loadDailyBars(assetId, range, options) {
       try {
         return await base.loadDailyBars(assetId, range, options);
@@ -69,9 +71,11 @@ export function DashboardPage() {
   );
   return (
     <div className="obolargus_dashboard_page">
-      <OfflineReadSummary />
       <div className="obolargus_dashboard_page_body">
-        <Dashboard dataAdapter={dataAdapter} />
+        <Dashboard
+          dataAdapter={dataAdapter}
+          toolbarStatus={<OfflineReadSummary />}
+        />
       </div>
     </div>
   );

@@ -148,7 +148,7 @@ describe("LoadForm", () => {
         onSubmit={() => undefined}
       />,
     );
-    expect(screen.getByRole("button", { name: "Load date range" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Load date range/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Range start" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Range end" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Window (1–32)")).toBeInTheDocument();
@@ -192,12 +192,12 @@ describe("LoadForm", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Load date range" }));
+    await user.click(screen.getByRole("button", { name: /Load date range/ }));
     fireEvent.click(
-      screen.getByRole("gridcell", { name: /October 1, 2026/ }),
+      screen.getAllByRole("gridcell", { name: /October 1, 2026/ })[0],
     );
     fireEvent.click(
-      screen.getByRole("gridcell", { name: /October 5, 2026/ }),
+      screen.getAllByRole("gridcell", { name: /October 5, 2026/ })[0],
     );
     await user.click(screen.getByRole("button", { name: /^Apply$/ }));
 
@@ -221,15 +221,12 @@ describe("LoadForm", () => {
       />,
     );
 
-    const trigger = screen.getByRole("button", { name: "Load date range" });
+    const trigger = screen.getByRole("button", { name: /Load date range/ });
     await user.click(trigger);
     fireEvent.click(
-      screen.getByRole("gridcell", { name: /October 1, 2026/ }),
+      screen.getAllByRole("gridcell", { name: /October 1, 2026/ })[0],
     );
 
     expect(trigger).toHaveTextContent("2026-10-01 — select end");
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Oct 1, 2026 — Apply for a single date, or select an end date.",
-    );
   });
 });

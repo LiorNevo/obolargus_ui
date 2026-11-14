@@ -1,3 +1,4 @@
+/* global self, caches */
 // Development-only worker.
 //
 // A production deployment may have registered a worker under the same scope.
