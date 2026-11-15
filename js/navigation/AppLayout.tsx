@@ -9,6 +9,7 @@ import {
   stripBasePath,
 } from "../offline/launchRoute";
 import { useNavigationStore } from "../store/navigationStore";
+import { MorpheusHost, MorpheusHostChat } from "./MorpheusHost";
 
 /** Props for the application layout route. */
 export interface AppLayoutProps {
@@ -61,9 +62,12 @@ export function AppLayout({ navigation }: AppLayoutProps) {
     (entry) => entry.availability === "available",
   );
   return (
-    <AppShell productName="Obolargus" navigation={primaryNavigation}>
-      <Outlet context={{ navigation }} />
-    </AppShell>
+    <MorpheusHost>
+      <AppShell productName="Obolargus" navigation={primaryNavigation}>
+        <Outlet context={{ navigation }} />
+      </AppShell>
+      <MorpheusHostChat />
+    </MorpheusHost>
   );
 }
 

@@ -22,6 +22,7 @@ const LazyRunListPage = lazy(() => import("../pages/automation/RunListPage"));
 const LazyRunDetailPage = lazy(
   () => import("../pages/automation/RunDetailPage"),
 );
+const LazyMorpheusPage = lazy(() => import("../pages/MorpheusPage"));
 
 function suspense(element: ReactNode): ReactNode {
   return (
@@ -137,6 +138,17 @@ export const PAGES: PageDefinition[] = [
     availability: "available",
     showInNavigation: false,
     element: suspense(<LazyRunDetailPage />),
+  },
+  {
+    id: "morpheus",
+    path: "/morpheus",
+    label: "Morpheus",
+    title: "Morpheus",
+    visibility: "restricted",
+    requiredPermission: "workspace:view",
+    availability: "available",
+    showInNavigation: true,
+    element: suspense(<LazyMorpheusPage />),
   },
   {
     id: "portfolios",
