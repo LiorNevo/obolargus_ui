@@ -98,9 +98,27 @@ body,
 .obolargus_dashboard_page {
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
   height: 100%;
   min-height: 0;
   overflow: hidden;
+}
+
+/* The dashboard scrolls in its own canvas. Keep that scrollbar at the screen
+   edge and inset the widget grid so the bar never touches a widget. */
+.lx_client_app_shell_main:has(.obolargus_dashboard_page) {
+  padding-right: 0;
+}
+
+.obolargus_dashboard_page .lx_client_dashboard_canvas_scroll {
+  box-sizing: border-box;
+  padding-right: var(--space-4, 16px);
+}
+
+@media (max-width: 767px) {
+  .obolargus_dashboard_page .lx_client_dashboard_canvas_scroll {
+    padding-right: var(--space-2, 8px);
+  }
 }
 
 .obolargus_dashboard_page_body {
