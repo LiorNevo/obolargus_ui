@@ -65,7 +65,6 @@ const ICONS = [
   "pan_tool",
   "pause",
   "pending",
-  "psychology",
   "play_arrow",
   "redo",
   "refresh",
