@@ -12,6 +12,7 @@ const USER_FACING_IDS = [
   "automation-flow",
   "automation-runs",
   "automation-run",
+  "morpheus",
   "portfolios",
   "analysis",
   "rules",
@@ -59,6 +60,11 @@ const EXPECTED_PAGES: Record<
   },
   "automation-run": {
     label: "Run detail",
+    permission: "workspace:view",
+    availability: "available",
+  },
+  morpheus: {
+    label: "Morpheus",
     permission: "workspace:view",
     availability: "available",
   },

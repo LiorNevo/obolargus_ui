@@ -33,6 +33,10 @@ function renderRoute(path: string, pages: PageDefinition[] = PAGES) {
 }
 
 describe("URL-driven routing", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it("renders the dashboard at /", async () => {
     renderRoute("/");
 
@@ -105,7 +109,7 @@ describe("URL-driven routing", () => {
   it("renders the Semantic Layer page directly from its URL", async () => {
     const fetchMock = jest
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(semanticDictionaryResponse());
+      .mockImplementation(() => Promise.resolve(semanticDictionaryResponse()));
     renderRoute("/semantic-layer");
 
     expect(
