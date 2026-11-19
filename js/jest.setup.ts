@@ -33,6 +33,18 @@ if (typeof globalThis.TextEncoder === "undefined") {
   Object.assign(globalThis, { TextEncoder, TextDecoder });
 }
 
+// --- Network guard ---------------------------------------------------------
+// Relative API reads (`/obolargus/api/...`) resolve to 127.0.0.1:80 in jsdom,
+// so any unmocked read makes whatwg-fetch attempt a real XHR and logs
+// `ECONNREFUSED` noise even though the test passes. Reject like an offline
+// browser instead, without touching the network. Transport tests still install
+// their own response with `jest.spyOn(globalThis, "fetch")`; `restoreAllMocks`
+// puts this plain function back.
+async function unreachableFetch(): Promise<Response> {
+  throw new TypeError("Failed to fetch");
+}
+globalThis.fetch = unreachableFetch as typeof fetch;
+
 export {};
 
 // --- Dashboard test environment -------------------------------------------
