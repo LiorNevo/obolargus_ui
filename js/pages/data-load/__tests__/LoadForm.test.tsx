@@ -207,7 +207,7 @@ describe("LoadForm", () => {
     });
   });
 
-  it("shows the pending start immediately in the range trigger", async () => {
+  it("shows the pending range in the trigger before Apply", async () => {
     const user = userEvent.setup();
     render(
       <LoadForm
@@ -227,6 +227,6 @@ describe("LoadForm", () => {
       screen.getAllByRole("gridcell", { name: /October 1, 2026/ })[0],
     );
 
-    expect(trigger).toHaveTextContent("2026-10-01 — select end");
+    expect(trigger).toHaveTextContent("2026-10-01 — 2026-10-05");
   });
 });
