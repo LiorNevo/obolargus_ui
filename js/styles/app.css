@@ -137,46 +137,167 @@ body,
 /* --- Authentication (spec 034) ------------------------------------------- */
 
 .obolargus_auth_screen {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100%;
-  padding: 24px;
+  padding: clamp(16px, 4vw, 48px);
   box-sizing: border-box;
-  background: var(--bg, #0b1220);
-  color: var(--fg, #e6edf7);
+  overflow-y: auto;
+  background-color: var(--bg, #0a0c0d);
+  background-image:
+    radial-gradient(
+      60% 45% at 50% 38%,
+      color-mix(in srgb, var(--brass, #e0ae4a) 10%, transparent) 0%,
+      transparent 70%
+    ),
+    var(--vignette, none);
+  background-attachment: fixed;
+  color: var(--fg, #eae6da);
+  font-family: var(--font-family);
 }
 
 .obolargus_auth_card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  width: min(420px, 100%);
-  padding: 32px;
+  gap: var(--space-4, 16px);
+  width: min(440px, 100%);
+  padding: clamp(24px, 5vw, 40px);
   box-sizing: border-box;
-  border: 1px solid var(--border, #2c3a52);
-  border-radius: 12px;
-  background: var(--surface, #16233a);
-  box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
+  border: 1px solid var(--border-strong, #8a8066);
+  border-radius: 0;
+  background-color: color-mix(in srgb, var(--panel, #121719) 92%, transparent);
+  background-image:
+    linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--brass, #e0ae4a) 70%, transparent),
+      transparent
+    ),
+    var(--panel-gradient, none);
+  background-repeat: no-repeat;
+  background-size:
+    100% 1px,
+    auto;
+  background-position:
+    top left,
+    0 0;
+  box-shadow:
+    0 30px 80px var(--edge-shadow, rgb(0 0 0 / 55%)),
+    0 0 0 1px color-mix(in srgb, var(--brass, #e0ae4a) 18%, transparent),
+    inset 0 1px 0 var(--edge-highlight, rgb(255 245 220 / 8%));
+  backdrop-filter: blur(18px) saturate(1.05);
+}
+
+/* Brass corner brackets keep the card in the shell's instrument-panel
+   language without adding another panel component. */
+.obolargus_auth_card::before,
+.obolargus_auth_card::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--brass, #e0ae4a);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.obolargus_auth_card::before {
+  top: -1px;
+  left: -1px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.obolargus_auth_card::after {
+  right: -1px;
+  bottom: -1px;
+  border-top: 0;
+  border-left: 0;
+}
+
+.obolargus_auth_brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.obolargus_auth_mark {
+  position: relative;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--accent, #e0ae4a);
+  border-radius: 50%;
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    var(--accent, #e0ae4a) 0 1.5px,
+    transparent 2.2px
+  );
+  box-shadow:
+    0 0 16px var(--glow, rgb(224 174 74 / 30%)),
+    inset 0 0 12px color-mix(in srgb, var(--accent, #e0ae4a) 22%, transparent);
+}
+
+.obolargus_auth_mark::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid
+    color-mix(in srgb, var(--accent, #e0ae4a) 40%, transparent);
+  border-radius: 50%;
+}
+
+.obolargus_auth_mark::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border: 1px solid
+    color-mix(in srgb, var(--accent, #e0ae4a) 82%, transparent);
+  transform: translate(-50%, -50%) rotate(45deg);
+  box-shadow: 0 0 8px var(--glow, rgb(224 174 74 / 30%));
+}
+
+.obolargus_auth_eyebrow {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-muted, #f3cb70);
+  opacity: 0.85;
 }
 
 .obolargus_auth_card h1 {
   margin: 0;
-  font-size: 24px;
+  font-family: var(--font-family-display, inherit);
+  font-size: clamp(26px, 4vw, 32px);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.1;
+  color: var(--fg, #eae6da);
+  text-shadow: 0 0 28px var(--glow, rgb(224 174 74 / 30%));
 }
 
 .obolargus_auth_intro {
   margin: 0;
-  color: var(--fg-muted, #9aa8bd);
-  line-height: 1.5;
+  max-width: 36ch;
+  color: var(--fg-muted, #a79e8c);
+  line-height: 1.55;
 }
 
 .obolargus_auth_alert {
-  padding: 10px 12px;
-  border: 1px solid var(--danger, #e56b6b);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--danger, #e56b6b) 12%, transparent);
+  padding: 10px 12px 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--error, #e8795f) 55%, transparent);
+  border-left: 3px solid var(--error, #e8795f);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--error, #e8795f) 10%, transparent);
 }
 
 .obolargus_auth_alert p {
@@ -184,21 +305,69 @@ body,
   font-size: 13px;
 }
 
+.obolargus_auth_alert code {
+  color: var(--accent-muted, #f3cb70);
+  font-family: var(--font-family);
+}
+
 .obolargus_auth_google {
   display: flex;
   justify-content: center;
   min-height: 44px;
+  padding-top: var(--space-1, 4px);
 }
 
 .obolargus_auth_actions {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2, 8px);
 }
 
 .obolargus_auth_footnote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
   margin: 0;
-  font-size: 12px;
-  color: var(--fg-muted, #9aa8bd);
+  padding-top: var(--space-3, 12px);
+  border-top: 1px solid
+    color-mix(in srgb, var(--border, #626762) 60%, transparent);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: var(--fg-muted, #a79e8c);
+}
+
+.obolargus_auth_footnote::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent, #e0ae4a);
+  box-shadow: 0 0 8px var(--glow, rgb(224 174 74 / 30%));
+}
+
+@media (max-width: 480px) {
+  .obolargus_auth_screen {
+    align-items: flex-start;
+    padding: 16px;
+    padding-top: max(16px, 8vh);
+  }
+
+  .obolargus_auth_card {
+    padding: 24px 20px;
+    gap: var(--space-3, 12px);
+  }
+
+  .obolargus_auth_mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .obolargus_auth_eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.16em;
+  }
 }
 
 .obolargus_dev_banner {

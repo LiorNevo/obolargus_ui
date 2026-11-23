@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "lx_client/js/components/Button";
 import Loading from "lx_client/js/components/Loading";
+import { AuthFrame } from "./AuthFrame";
 import { GOOGLE_CLIENT_ID } from "./config";
 import {
   loadGoogleIdentityServices,
@@ -42,7 +43,7 @@ export function GoogleSignIn({ clientId = GOOGLE_CLIENT_ID }: GoogleSignInProps)
       });
       google.accounts.id.renderButton(parent, {
         type: "standard",
-        theme: "outline",
+        theme: "filled_black",
         size: "large",
         text: "signin_with",
         shape: "rectangular",
@@ -74,65 +75,66 @@ export function GoogleSignIn({ clientId = GOOGLE_CLIENT_ID }: GoogleSignInProps)
   }, [clientId, reloadKey, start]);
 
   return (
-    <div className="obolargus_auth_screen">
-      <main className="obolargus_auth_card" aria-labelledby="obolargus_signin_title">
-        <h1 id="obolargus_signin_title">Obolargus</h1>
-        <p className="obolargus_auth_intro">
-          Sign in with an allowlisted Google account to open your private
-          workspace.
-        </p>
+    <AuthFrame titleId="obolargus_signin_title" title="Obolargus">
+      <p className="obolargus_auth_intro">
+        Sign in with an authorized Google account to open your private
+        workspace.
+      </p>
 
-        {!clientId && (
-          <div className="obolargus_auth_alert" role="alert" data-code="not_configured">
-            <p>
-              Sign-in is not configured for this build. Set{" "}
-              <code>GOOGLE_CLIENT_ID</code> and rebuild the UI.
-            </p>
-          </div>
-        )}
+      {!clientId && (
+        <div
+          className="obolargus_auth_alert"
+          role="alert"
+          data-code="not_configured"
+        >
+          <p>
+            Sign-in is not configured for this build. Set{" "}
+            <code>GOOGLE_CLIENT_ID</code> and rebuild the UI.
+          </p>
+        </div>
+      )}
 
-        {error && (
-          <div
-            className="obolargus_auth_alert"
-            role="alert"
-            data-code={error.code}
-          >
-            <p>{error.message}</p>
-          </div>
-        )}
+      {error && (
+        <div
+          className="obolargus_auth_alert"
+          role="alert"
+          data-code={error.code}
+        >
+          <p>{error.message}</p>
+        </div>
+      )}
 
-        {scriptError && (
-          <div className="obolargus_auth_alert" role="alert" data-code="script">
-            <p>{scriptError}</p>
-          </div>
-        )}
+      {scriptError && (
+        <div className="obolargus_auth_alert" role="alert" data-code="script">
+          <p>{scriptError}</p>
+        </div>
+      )}
 
-        {clientId && (
-          <div
-            ref={buttonRef}
-            className="obolargus_auth_google"
-            data-testid="google-signin-button"
-          />
-        )}
+      {clientId && (
+        <div
+          ref={buttonRef}
+          className="obolargus_auth_google"
+          data-testid="google-signin-button"
+        />
+      )}
 
-        {status === "signingIn" && (
-          <Loading compact label="Verifying Google sign-in…" />
-        )}
+      {status === "signingIn" && (
+        <Loading compact label="Verifying Google sign-in…" />
+      )}
 
-        {scriptError && clientId && (
-          <Button
-            variant="secondary"
-            onClick={() => setReloadKey((key) => key + 1)}
-          >
-            Retry Google sign-in
-          </Button>
-        )}
+      {scriptError && clientId && (
+        <Button
+          variant="secondary"
+          onClick={() => setReloadKey((key) => key + 1)}
+        >
+          Retry Google sign-in
+        </Button>
+      )}
 
-        <p className="obolargus_auth_footnote">
-          Only accounts on this deployment&apos;s allowlist can sign in.
-        </p>
-      </main>
-    </div>
+      <p className="obolargus_auth_footnote">
+        Only authorized Google accounts can enter this workspace.
+      </p>
+    </AuthFrame>
   );
 }
 

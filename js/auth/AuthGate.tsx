@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "lx_client/js/components/Button";
 import Loading from "lx_client/js/components/Loading";
 import { clearOfflineCachesForIdentityChange } from "../offline/identityBoundary";
+import { AuthFrame } from "./AuthFrame";
 import { AUTH_ENABLED, GOOGLE_CLIENT_ID } from "./config";
 import { DevModeBanner } from "./DevModeBanner";
 import { GoogleSignIn } from "./GoogleSignIn";
@@ -26,13 +27,10 @@ function SessionScreen({
   action: ReactNode;
 }) {
   return (
-    <div className="obolargus_auth_screen">
-      <main className="obolargus_auth_card" aria-labelledby="obolargus_session_title">
-        <h1 id="obolargus_session_title">{title}</h1>
-        <p className="obolargus_auth_intro">{message}</p>
-        {action}
-      </main>
-    </div>
+    <AuthFrame titleId="obolargus_session_title" title={title}>
+      <p className="obolargus_auth_intro">{message}</p>
+      {action}
+    </AuthFrame>
   );
 }
 
