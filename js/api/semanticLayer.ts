@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./config";
+import { HttpError, apiFetch } from "./http";
 import { readResponseMeta, type ReadMeta } from "../offline/responseProvenance";
 import type { SemanticLayerDocument } from "../types/semanticLayer";
 
@@ -63,7 +63,20 @@ export async function fetchSemanticLayerDocument(
   signal?: AbortSignal,
   onMeta?: MetaCallback,
 ): Promise<SemanticLayerDocument> {
-  const response = await fetch(`${API_BASE_URL}/domain/schema`, { signal });
+  let response: Response;
+  try {
+    response = await apiFetch("/domain/schema", { signal });
+  } catch (caught) {
+    if (signal?.aborted) throw caught;
+    if (caught instanceof HttpError) {
+      throw new SemanticLayerApiError(
+        caught.status,
+        caught.code,
+        caught.message,
+      );
+    }
+    throw caught;
+  }
   if (!response.ok) {
     const text = await response.text();
     const { code, message } = readErrorEnvelope(text);

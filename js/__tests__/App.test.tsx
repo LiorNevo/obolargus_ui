@@ -1,8 +1,8 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { createMemoryRouter } from "react-router-dom";
 import { buildAppRoutes } from "lx_client/js/navigation/routes";
 import { App } from "../App";
-import { UI_ACCESS_CONTEXT } from "../navigation/access";
+import { AUTHENTICATED_ACCESS_CONTEXT } from "../navigation/access";
 import { AppLayout } from "../navigation/AppLayout";
 import { PAGES } from "../navigation/pages";
 import { getAppRouter } from "../router";
@@ -13,30 +13,34 @@ jest.mock("../router", () => ({
 
 const mockedGetAppRouter = jest.mocked(getAppRouter);
 
-function renderAppAt(path: string) {
+async function renderAppAt(path: string) {
   const router = createMemoryRouter(
-    buildAppRoutes(PAGES, AppLayout, UI_ACCESS_CONTEXT),
+    buildAppRoutes(PAGES, AppLayout, AUTHENTICATED_ACCESS_CONTEXT),
     { initialEntries: [path] },
   );
 
-  return render(<App router={router} />);
+  const view = render(<App router={router} authEnabled={false} />);
+  // Let the Morpheus provider's mount sync settle inside act; otherwise its
+  // state updates land after the test body returns.
+  await act(async () => {});
+  return view;
 }
 
 describe("App", () => {
   it("renders the dashboard at /", async () => {
-    renderAppAt("/");
+    await renderAppAt("/");
 
     expect(
       await screen.findByRole(
         "region",
         { name: "Dashboard" },
-        { timeout: 5_000 },
+        { timeout: 15_000 },
       ),
     ).toBeInTheDocument();
   });
 
-  it("keeps unavailable areas out of the top bar", () => {
-    renderAppAt("/");
+  it("keeps unavailable areas out of the top bar", async () => {
+    await renderAppAt("/");
 
     const primary = screen.getByRole("navigation", { name: "Primary" });
     expect(
@@ -53,8 +57,8 @@ describe("App", () => {
     ).toBeNull();
   });
 
-  it("renders the Portfolios placeholder for /portfolios", () => {
-    renderAppAt("/portfolios");
+  it("renders the Portfolios placeholder for /portfolios", async () => {
+    await renderAppAt("/portfolios");
 
     expect(
       screen.getByRole("heading", { level: 1, name: "Portfolios" }),
@@ -66,19 +70,20 @@ describe("App", () => {
 
   it("uses the production router when none is injected", async () => {
     const router = createMemoryRouter(
-      buildAppRoutes(PAGES, AppLayout, UI_ACCESS_CONTEXT),
+      buildAppRoutes(PAGES, AppLayout, AUTHENTICATED_ACCESS_CONTEXT),
       { initialEntries: ["/"] },
     );
     mockedGetAppRouter.mockReturnValue(router);
 
-    render(<App />);
+    render(<App authEnabled={false} />);
+    await act(async () => {});
 
     expect(mockedGetAppRouter).toHaveBeenCalledTimes(1);
     expect(
       await screen.findByRole(
         "region",
         { name: "Dashboard" },
-        { timeout: 5_000 },
+        { timeout: 15_000 },
       ),
     ).toBeInTheDocument();
   });

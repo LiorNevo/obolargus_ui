@@ -1,4 +1,8 @@
-import type { LoadReport, RangeReport } from "../../../types/dataLoad";
+import type {
+  DateLoadSummary,
+  LoadReport,
+  RangeReport,
+} from "../../../types/dataLoad";
 import {
   groupLoadReport,
   groupRangeReport,
@@ -60,6 +64,31 @@ function report(overrides: Partial<LoadReport> = {}): LoadReport {
   };
 }
 
+function summaryFrom(report: LoadReport): DateLoadSummary {
+  return {
+    date: report.as_of_date ?? "2026-10-01",
+    run_id: report.run_id,
+    status: report.status,
+    identifiers_attempted: report.identifiers_attempted,
+    loaded: report.loaded,
+    no_op: report.no_op,
+    not_resolved: report.not_resolved,
+    no_data_for_date: report.no_data_for_date,
+    unsupported_scheme: report.unsupported_scheme,
+    rejected: report.rejected,
+    source_unavailable: report.source_unavailable,
+    rate_limited: report.rate_limited,
+    storage_failure: report.storage_failure,
+    assets_created: report.assets_created,
+    assets_adopted: report.assets_adopted,
+    per_source_attempted: report.per_source_attempted,
+    per_source_failed: report.per_source_failed,
+    started_at: report.started_at,
+    ended_at: report.ended_at,
+    duration_ms: report.duration_ms,
+  };
+}
+
 function rangeReport(): RangeReport {
   return {
     report_version: 1,
@@ -70,6 +99,8 @@ function rangeReport(): RangeReport {
     concurrency: 2,
     status: "partial",
     dates_requested: 2,
+    dates_completed: 2,
+    dates_failed: 1,
     dates_with_loads: 1,
     dates_with_nothing_stored: 1,
     totals: {
@@ -88,10 +119,9 @@ function rangeReport(): RangeReport {
     },
     run_ids: ["run-1", "run-2"],
     dates: [
-      { date: "2026-10-01", report: report() },
-      {
-        date: "2026-10-02",
-        report: report({
+      summaryFrom(report()),
+      summaryFrom(
+        report({
           run_id: "run-2",
           as_of_date: "2026-10-02",
           status: "failed",
@@ -101,7 +131,7 @@ function rangeReport(): RangeReport {
           no_data_for_date: 2,
           identifiers: [],
         }),
-      },
+      ),
     ],
     started_at: "2026-10-01T00:00:00Z",
     ended_at: "2026-10-01T00:00:02Z",

@@ -2,12 +2,12 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { createMemoryRouter } from "react-router-dom";
 import { buildAppRoutes } from "lx_client/js/navigation/routes";
 import { App } from "../App";
-import { UI_ACCESS_CONTEXT } from "../navigation/access";
+import { AUTHENTICATED_ACCESS_CONTEXT } from "../navigation/access";
 import { AppLayout } from "../navigation/AppLayout";
 import { PAGES } from "../navigation/pages";
 
 const router = createMemoryRouter(
-  buildAppRoutes(PAGES, AppLayout, UI_ACCESS_CONTEXT),
+  buildAppRoutes(PAGES, AppLayout, AUTHENTICATED_ACCESS_CONTEXT),
   { initialEntries: ["/"] },
 );
 
@@ -30,5 +30,5 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Dashboard: Story = {
-  args: { router },
+  args: { router, authEnabled: false },
 };

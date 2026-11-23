@@ -26,9 +26,14 @@ Operational rules for contributors and AI agents working in this app.
   `basename`.
 - The gateway strips `/obolargus` before proxying. The dev server keeps
   `historyApiFallback: true` so a copied deep link survives a full reload.
-- `js/navigation/access.ts` holds the temporary permissive
-  `UI_ACCESS_CONTEXT`. Authentication enforcement is deferred; replace that one
-  constant when it lands. Do not declare another permissive context.
+- `js/navigation/access.ts` holds `AUTHENTICATED_ACCESS_CONTEXT`, the single
+  access context for signed-in owners. `AuthGate` enforces authentication and
+  clearing identity-scoped caches before another owner renders; do not add a
+  second permissive context.
+- `js/auth/` owns the session: the access token stays in memory, the refresh
+  token/actor persist through the shared IndexedDB storage, and every API call
+  goes through `js/api/http.ts` (bearer, 15 s deadline, one refresh retry).
+  Build-time `AUTH_ENABLED=false` renders the development banner.
 - Developer-only pages (for example `/__components`) stay resolvable by direct
   URL with `showInNavigation: false`.
 - Runtime config (e.g. `API_BASE_URL`) goes through `js/api/config.ts` env

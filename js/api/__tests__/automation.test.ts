@@ -286,13 +286,15 @@ describe("automation API request plumbing", () => {
     expect(lastCall()[0]).toBe(
       `${API_BASE_URL}/automation/triggers/t1/invoke`,
     );
-    expect(lastCall()[1].headers).toMatchObject({
-      "idempotency-key": "idem-1",
-    });
+    expect(new Headers(lastCall()[1].headers).get("idempotency-key")).toBe(
+      "idem-1",
+    );
 
     ok({ run_id: "r1" });
     await api.invokeTrigger("t1", { inputs: {} });
-    expect(lastCall()[1].headers).toBeUndefined();
+    expect(new Headers(lastCall()[1].headers).has("idempotency-key")).toBe(
+      false,
+    );
   });
 
   it("loads and deletes context and builds audit queries", async () => {

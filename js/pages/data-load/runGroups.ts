@@ -1,4 +1,5 @@
 import type {
+  DateLoadSummary,
   IdentifierOutcome,
   LoadReport,
   RangeReport,
@@ -175,20 +176,64 @@ export function groupLoadReport(
   };
 }
 
-/** Builds one run group per date run in a range report. */
+/** Builds one run group per bounded date summary in a range report. */
 export function groupRangeReport(
   report: RangeReport,
   options: RangeReportGroupOptions = {},
 ): RunGroup[] {
-  return report.dates.map((section) =>
-    groupLoadReport(section.report, {
-      id:
-        section.report.run_id ??
-        `${report.range_group_id}:${section.date}`,
-      title: section.date,
-      defaultExpanded: options.defaultExpanded ?? false,
+  return report.dates.map((summary) => groupDateSummary(summary, report, options));
+}
+
+/** Builds one run group from a date summary (no per-identifier outcomes). */
+function groupDateSummary(
+  summary: DateLoadSummary,
+  report: RangeReport,
+  options: RangeReportGroupOptions,
+): RunGroup {
+  const failed =
+    summary.rejected +
+    summary.source_unavailable +
+    summary.rate_limited +
+    summary.storage_failure;
+  const note =
+    summary.loaded > 0 || summary.no_op > 0
+      ? null
+      : failed > 0
+        ? "Nothing stored for this date (failed)."
+        : "Nothing stored for this date (no data exists).";
+  return {
+    id: summary.run_id ?? `${report.range_group_id}:${summary.date}`,
+    kind: "run",
+    title: summary.date,
+    runId: summary.run_id,
+    status: summary.status,
+    stale: false,
+    startedAt: summary.started_at,
+    endedAt: summary.ended_at,
+    durationMs: summary.duration_ms,
+    domain: report.data_domain,
+    source: null,
+    counters: countersFrom({
+      identifiers_requested_raw:
+        summary.identifiers_attempted + summary.not_resolved,
+      identifiers_duplicated: 0,
+      identifiers_attempted: summary.identifiers_attempted,
+      loaded: summary.loaded,
+      no_op: summary.no_op,
+      not_resolved: summary.not_resolved,
+      no_data_for_date: summary.no_data_for_date,
+      unsupported_scheme: summary.unsupported_scheme,
+      rejected: summary.rejected,
+      source_unavailable: summary.source_unavailable,
+      rate_limited: summary.rate_limited,
+      storage_failure: summary.storage_failure,
+      assets_created: summary.assets_created,
+      assets_adopted: summary.assets_adopted,
     }),
-  );
+    outcomes: [],
+    note,
+    defaultExpanded: options.defaultExpanded ?? false,
+  };
 }
 
 

@@ -40,6 +40,13 @@ describe("query retry policy", () => {
     expect(isRetryableError(new Error("unexpected"))).toBe(false);
   });
 
+  it("surfaces a deadline once while keeping the error retryable for the user", () => {
+    const error = new DashboardApiError(0, "timeout", "slow", true);
+    expect(error.retryable).toBe(true);
+    expect(isRetryableError(error)).toBe(false);
+    expect(shouldRetry(0, error)).toBe(false);
+  });
+
   it("backs off exponentially and caps at thirty seconds", () => {
     expect(retryDelay(0)).toBe(1_000);
     expect(retryDelay(1)).toBe(2_000);

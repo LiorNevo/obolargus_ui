@@ -29,8 +29,22 @@ const REPORT = {
 
 const RANGE_REPORT = {
   range_group_id: "group-1",
-  dates: [{ date: "2026-10-01", report: REPORT }],
+  dates: [{ date: "2026-10-01", status: "complete", loaded: 1 }],
   status: "partial",
+  totals: {
+    identifiers_attempted: 1,
+    loaded: 1,
+    no_op: 0,
+    not_resolved: 0,
+    no_data_for_date: 0,
+    unsupported_scheme: 0,
+    rejected: 0,
+    source_unavailable: 0,
+    rate_limited: 0,
+    storage_failure: 0,
+    assets_created: 1,
+    assets_adopted: 0,
+  },
 } as unknown as RangeReport;
 
 beforeEach(() => {

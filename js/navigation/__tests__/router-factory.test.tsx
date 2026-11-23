@@ -1,6 +1,6 @@
 import { createAppRouter } from "lx_client/js/navigation/routes";
 import { BASE_PATH } from "../../config";
-import { UI_ACCESS_CONTEXT } from "../access";
+import { AUTHENTICATED_ACCESS_CONTEXT } from "../access";
 import { AppLayout } from "../AppLayout";
 import { PAGES } from "../pages";
 import { getAppRouter } from "../../router";
@@ -25,7 +25,7 @@ describe("getAppRouter", () => {
     expect(mockedCreateAppRouter).toHaveBeenCalledWith({
       pages: PAGES,
       Layout: AppLayout,
-      access: UI_ACCESS_CONTEXT,
+      access: AUTHENTICATED_ACCESS_CONTEXT,
       basename: BASE_PATH,
       notFoundElement: expect.anything(),
       errorElement: expect.anything(),

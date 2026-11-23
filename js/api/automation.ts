@@ -1,6 +1,6 @@
 /** REST client for `/api/automation`. */
 
-import { API_BASE_URL } from "./config";
+import { HttpError, apiFetch } from "./http";
 import type {
   AuditEvent,
   AutomationErrorBody,
@@ -42,10 +42,23 @@ async function request<T>(
   path: string,
   init?: Parameters<typeof fetch>[1],
 ): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
-    ...init,
-  });
+  const headers = new Headers(init?.headers);
+  if (!headers.has("content-type")) {
+    headers.set("content-type", "application/json");
+  }
+  let response: Response;
+  try {
+    response = await apiFetch(path, {
+      ...init,
+      signal: init?.signal ?? undefined,
+      headers,
+    });
+  } catch (caught) {
+    if (caught instanceof HttpError) {
+      throw new AutomationApiError(caught.status, caught.code, caught.message);
+    }
+    throw caught;
+  }
   if (response.ok) {
     if (response.status === 204) {
       return undefined as T;
@@ -228,8 +241,8 @@ export async function exportVersion(
   flowId: string,
   versionNumber: number,
 ): Promise<{ filename: string; text: string }> {
-  const response = await fetch(
-    `${API_BASE_URL}/automation/flows/${encodeURIComponent(flowId)}/versions/${versionNumber}/export`,
+  const response = await apiFetch(
+    `/automation/flows/${encodeURIComponent(flowId)}/versions/${versionNumber}/export`,
   );
   if (!response.ok) {
     throw new AutomationApiError(response.status, "request_failed", "export failed");

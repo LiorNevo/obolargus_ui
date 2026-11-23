@@ -2,7 +2,36 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { tableStore } from "lx_client/js/components/Table";
 import { RangeReport } from "../RangeReport";
-import type { LoadReport, RangeReport as RangeReportType } from "../../../types/dataLoad";
+import type {
+  DateLoadSummary,
+  LoadReport,
+  RangeReport as RangeReportType,
+} from "../../../types/dataLoad";
+
+function summaryFrom(asOfDate: string, report: LoadReport): DateLoadSummary {
+  return {
+    date: asOfDate,
+    run_id: report.run_id,
+    status: report.status,
+    identifiers_attempted: report.identifiers_attempted,
+    loaded: report.loaded,
+    no_op: report.no_op,
+    not_resolved: report.not_resolved,
+    no_data_for_date: report.no_data_for_date,
+    unsupported_scheme: report.unsupported_scheme,
+    rejected: report.rejected,
+    source_unavailable: report.source_unavailable,
+    rate_limited: report.rate_limited,
+    storage_failure: report.storage_failure,
+    assets_created: report.assets_created,
+    assets_adopted: report.assets_adopted,
+    per_source_attempted: report.per_source_attempted,
+    per_source_failed: report.per_source_failed,
+    started_at: report.started_at,
+    ended_at: report.ended_at,
+    duration_ms: report.duration_ms,
+  };
+}
 
 function report(asOfDate: string, loaded: number): LoadReport {
   return {
@@ -44,6 +73,8 @@ const RANGE: RangeReportType = {
   concurrency: 2,
   status: "failed",
   dates_requested: 2,
+  dates_completed: 2,
+  dates_failed: 1,
   dates_with_loads: 1,
   dates_with_nothing_stored: 1,
   totals: {
@@ -62,8 +93,8 @@ const RANGE: RangeReportType = {
   },
   run_ids: ["run-1", "run-2"],
   dates: [
-    { date: "2026-10-01", report: report("2026-10-01", 1) },
-    { date: "2026-10-02", report: report("2026-10-02", 0) },
+    summaryFrom("2026-10-01", report("2026-10-01", 1)),
+    summaryFrom("2026-10-02", report("2026-10-02", 0)),
   ],
   started_at: "2026-10-01T00:00:00Z",
   ended_at: "2026-10-01T00:00:02Z",

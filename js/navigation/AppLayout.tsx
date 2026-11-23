@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import AppShell from "lx_client/js/components/AppShell";
 import type { NavigationEntry } from "lx_client/js/navigation/types";
 import { BASE_PATH } from "../config";
+import { UserMenu } from "../auth/UserMenu";
 import {
   chooseLaunchRoute,
   isStandaloneLaunch,
@@ -63,7 +64,11 @@ export function AppLayout({ navigation }: AppLayoutProps) {
   );
   return (
     <MorpheusHost>
-      <AppShell productName="Obolargus" navigation={primaryNavigation}>
+      <AppShell
+        productName="Obolargus"
+        navigation={primaryNavigation}
+        actions={<UserMenu />}
+      >
         <Outlet context={{ navigation }} />
       </AppShell>
       <MorpheusHostChat />

@@ -1,4 +1,9 @@
-import { API_BASE_URL } from "./config";
+import {
+  HttpError,
+  SINGLE_LOAD_TIMEOUT_MS,
+  apiFetch,
+  type ApiFetchOptions,
+} from "./http";
 import type {
   DomainCatalog,
   HistoryDetail,
@@ -18,34 +23,72 @@ import {
   type ReadMeta,
 } from "../offline/responseProvenance";
 
-/** A normalized request error with a stable code. */
+/** A normalized request error with a stable code and field details. */
 export class DataLoadApiError extends Error {
   readonly status: number;
   readonly code: string;
+  /** Machine-readable details such as `{ field, limit, actual, group_id }`. */
+  readonly details: Record<string, unknown> | null;
+  /** Seconds until retry, when the server sent `Retry-After`. */
+  readonly retryAfterSeconds: number | null;
 
-  constructor(status: number, code: string, message: string) {
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    details: Record<string, unknown> | null = null,
+    retryAfterSeconds: number | null = null,
+  ) {
     super(message);
     this.name = "DataLoadApiError";
     this.status = status;
     this.code = code;
+    this.details = details;
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+
+  /** The field named by a structured validation/limit error, when present. */
+  get field(): string | null {
+    const field = this.details?.field;
+    return typeof field === "string" ? field : null;
   }
 }
 
 interface ErrorEnvelope {
-  error?: { code?: string; message?: string };
+  error?: {
+    code?: string;
+    message?: string;
+    details?: Record<string, unknown> | null;
+  };
+}
+
+function retryAfterSeconds(response: Response): number | null {
+  const raw = response.headers.get("retry-after");
+  if (!raw) return null;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
 type MetaCallback = (meta: ReadMeta) => void;
 
 async function request<T>(
   path: string,
-  init?: Parameters<typeof fetch>[1],
+  init?: ApiFetchOptions,
   onMeta?: MetaCallback,
+  timeoutMs?: number,
 ): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
-    ...init,
-  });
+  let response: Response;
+  try {
+    response = await apiFetch(path, {
+      ...init,
+      ...(timeoutMs === undefined ? {} : { timeoutMs }),
+    });
+  } catch (error) {
+    if (error instanceof HttpError) {
+      throw new DataLoadApiError(error.status, error.code, error.message);
+    }
+    throw error;
+  }
   if (response.ok) {
     onMeta?.(readResponseMeta(response));
     return (await response.json()) as T;
@@ -53,14 +96,22 @@ async function request<T>(
   const text = await response.text();
   let code = "request_failed";
   let message = text || `request failed with status ${response.status}`;
+  let details: Record<string, unknown> | null = null;
   try {
     const envelope = JSON.parse(text) as ErrorEnvelope;
     code = envelope.error?.code ?? code;
     message = envelope.error?.message ?? message;
+    details = envelope.error?.details ?? null;
   } catch {
     // Legacy load endpoints return text/plain; keep the text as the message.
   }
-  throw new DataLoadApiError(response.status, code, message);
+  throw new DataLoadApiError(
+    response.status,
+    code,
+    message,
+    details,
+    retryAfterSeconds(response),
+  );
 }
 
 /** Loads the declared data domains. */
@@ -131,11 +182,16 @@ export function loadOnce(
   body: SingleLoadRequest,
   signal?: AbortSignal,
 ): Promise<LoadReport> {
-  return request<LoadReport>("/market-data/load", {
-    method: "POST",
-    body: JSON.stringify(body),
-    signal,
-  });
+  return request<LoadReport>(
+    "/market-data/load",
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+      signal,
+    },
+    undefined,
+    SINGLE_LOAD_TIMEOUT_MS,
+  );
 }
 
 export interface RangeLoadRequest {

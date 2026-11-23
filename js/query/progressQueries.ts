@@ -10,6 +10,8 @@ const TERMINAL_STATUSES: ReadonlySet<RangeProgress["status"]> = new Set([
   "complete",
   "partial",
   "failed",
+  "cancelled",
+  "interrupted",
 ]);
 
 /** Cache options for one range group's live progress. */

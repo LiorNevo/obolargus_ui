@@ -2,6 +2,7 @@ import { useState } from "react";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { RouterProvider } from "react-router-dom";
 import type { AppRouter } from "lx_client/js/navigation/routes";
+import { AuthGate } from "./auth/AuthGate";
 import { AppThemeProvider } from "./theme/AppThemeProvider";
 import { getAppRouter } from "./router";
 import { createQueryClient } from "./query/client";
@@ -17,15 +18,17 @@ export interface AppProps {
   router?: AppRouter;
   /** Optional already-created cache for tests and stories. */
   queryClient?: QueryClient;
+  /** Overrides the build-time auth flag in tests and stories. */
+  authEnabled?: boolean;
 }
 
 /**
- * Application root: query cache, theme provider, routed workspace and app
- * container.
+ * Application root: session gate, query cache, theme provider, routed
+ * workspace and app container.
  *
- * @param props - Optional injected router or query client.
+ * @param props - Optional injected router, query client, or auth flag.
  */
-export function App({ router, queryClient }: AppProps = {}) {
+export function App({ router, queryClient, authEnabled }: AppProps = {}) {
   const [defaultQueryClient] = useState(() => createQueryClient());
   const activeRouter = router ?? getAppRouter();
   const activeQueryClient = queryClient ?? defaultQueryClient;
@@ -34,12 +37,14 @@ export function App({ router, queryClient }: AppProps = {}) {
     <QueryClientProvider client={activeQueryClient}>
       <AppThemeProvider>
         <OfflineProvider>
-          <div
-            className="lx_client_app_container"
-            style={{ width: "100%", height: "100%" }}
-          >
-            <RouterProvider router={activeRouter} />
-          </div>
+          <AuthGate authEnabled={authEnabled}>
+            <div
+              className="lx_client_app_container"
+              style={{ width: "100%", height: "100%" }}
+            >
+              <RouterProvider router={activeRouter} />
+            </div>
+          </AuthGate>
         </OfflineProvider>
       </AppThemeProvider>
     </QueryClientProvider>

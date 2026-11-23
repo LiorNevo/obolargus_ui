@@ -1,13 +1,14 @@
 import type { AccessContext } from "lx_client/js/navigation/types";
 
 /**
- * Temporary permissive access context for the financial workspace.
+ * Access context for an authenticated workspace.
  *
- * Authentication enforcement is deferred, so the application must render the
- * restricted workspace pages for every caller in this release. Page
- * definitions still carry real visibility and permission metadata, and tests
- * exercise access filtering with explicit permission sets. When authentication
- * lands, replace this constant with the authenticated caller's permissions;
- * it is declared here so there is exactly one place to change.
+ * Authentication is enforced by `AuthGate`: an unauthenticated caller never
+ * reaches the router, and every allowlisted Google account is a full owner of
+ * its private workspace (there are no roles). Page definitions still carry
+ * visibility and permission metadata so a future role model can narrow this
+ * single constant.
  */
-export const UI_ACCESS_CONTEXT: AccessContext = { grantedPermissions: "all" };
+export const AUTHENTICATED_ACCESS_CONTEXT: AccessContext = {
+  grantedPermissions: "all",
+};

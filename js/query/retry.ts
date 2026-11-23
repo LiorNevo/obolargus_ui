@@ -19,6 +19,19 @@ function isAbortError(error: unknown): boolean {
 }
 
 /**
+ * A 15 s deadline has already spent the user's patience; the UI offers a
+ * manual Retry instead of stacking automatic attempts past the deadline.
+ */
+function isDeadlineError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "timeout"
+  );
+}
+
+/**
  * Classifies an API or transport failure for automatic query retry.
  *
  * Permanent client errors and aborted requests are never retryable. Network
@@ -27,6 +40,7 @@ function isAbortError(error: unknown): boolean {
  */
 export function isRetryableError(error: unknown): boolean {
   if (isAbortError(error)) return false;
+  if (isDeadlineError(error)) return false;
   if (isOfflineUnavailableError(error)) return false;
 
   const flag = retryableFlag(error);

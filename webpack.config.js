@@ -89,12 +89,18 @@ module.exports = (env = {}, argv = {}) => {
   const buildId =
     process.env.OBOLARGUS_BUILD_ID ||
     `${packageVersion}-${readGitCommit()}`;
+  const authEnabled =
+    String(process.env.AUTH_ENABLED ?? "true").trim().toLowerCase() !==
+    "false";
+  const googleClientId = String(process.env.GOOGLE_CLIENT_ID ?? "").trim();
 
   const plugins = [
     new webpack.DefinePlugin({
       "process.env.BASE_PATH": JSON.stringify(basePath),
       "process.env.API_BASE_URL": JSON.stringify(apiBaseUrl),
       "process.env.OBOLARGUS_BUILD_ID": JSON.stringify(buildId),
+      "process.env.AUTH_ENABLED": JSON.stringify(authEnabled ? "true" : "false"),
+      "process.env.GOOGLE_CLIENT_ID": JSON.stringify(googleClientId),
       "process.env.NODE_ENV": JSON.stringify(mode),
     }),
     new HtmlWebpackPlugin({

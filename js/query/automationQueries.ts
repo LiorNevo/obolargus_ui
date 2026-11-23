@@ -17,12 +17,16 @@ import {
   fetchVersion,
   fetchVersions,
 } from "../api/automation";
-import { API_BASE_URL } from "../api/config";
+import { HttpError } from "../api/http";
+import { openAuthenticatedEventStream } from "../api/sse";
+import { useAuthStore } from "../auth/store";
 import { queryKeys } from "./keys";
 
 const CATALOG_STALE_MS = 300_000;
 const FLOW_STALE_MS = 15_000;
 const RUN_STALE_MS = 5_000;
+/** Fallback cadence when the event stream drops before the run is terminal. */
+const RUN_POLL_MS = 3_000;
 
 /** Cache options for the executable node catalog. */
 export function nodeTypesQueryOptions() {
@@ -284,17 +288,23 @@ export function useRunLogsQuery(runId: string | undefined) {
  * Subscribes to the run SSE stream and refreshes the affected queries.
  *
  * The server stream is a projection over persisted rows; the hook only
- * invalidates caches, so a dropped connection degrades to polling.
+ * invalidates caches. `EventSource` cannot carry a bearer header, so the
+ * stream uses fetch and the token stays out of the URL. A dropped connection
+ * degrades to polling, and an expired token ends the stream so the auth gate
+ * can refresh or return to sign-in.
  */
 export function useRunEvents(runId: string | undefined, enabled = true) {
   const queryClient = useQueryClient();
+  const refreshAccessToken = useAuthStore((state) => state.refreshAccessToken);
   useEffect(() => {
-    if (!runId || !enabled || typeof EventSource === "undefined") {
+    if (!runId || !enabled) {
       return;
     }
-    const source = new EventSource(
-      `${API_BASE_URL}/automation/runs/${encodeURIComponent(runId)}/events`,
-    );
+    let stopped = false;
+    let ended = false;
+    let poll: ReturnType<typeof setInterval> | null = null;
+    let close: (() => void) | null = null;
+
     const refresh = () => {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.automation.run(runId),
@@ -306,16 +316,49 @@ export function useRunEvents(runId: string | undefined, enabled = true) {
         queryKey: queryKeys.automation.runLogs(runId),
       });
     };
-    for (const eventName of [
-      "snapshot",
-      "message",
-      "log",
-      "node.status",
-      "run.status",
-      "end",
-    ]) {
-      source.addEventListener(eventName, refresh);
-    }
-    return () => source.close();
-  }, [queryClient, runId, enabled]);
+    const stopPolling = () => {
+      if (poll !== null) clearInterval(poll);
+      poll = null;
+    };
+    const startPolling = () => {
+      if (stopped || ended || poll !== null) return;
+      refresh();
+      poll = setInterval(refresh, RUN_POLL_MS);
+    };
+
+    close = openAuthenticatedEventStream(
+      `/automation/runs/${encodeURIComponent(runId)}/events`,
+      {
+        onEvent: (event) => {
+          refresh();
+          if (event.event === "end") {
+            ended = true;
+            stopPolling();
+            close?.();
+          }
+        },
+        onError: (error) => {
+          if (stopped) return;
+          if (error instanceof HttpError && error.status === 401) {
+            // The stream ends cleanly. A failed refresh moves the gate back to
+            // sign-in; a successful one resumes read polling with the new token.
+            void refreshAccessToken().then((refreshed) => {
+              if (!stopped && refreshed) startPolling();
+            });
+            return;
+          }
+          startPolling();
+        },
+        onClose: () => {
+          if (!stopped && !ended) startPolling();
+        },
+      },
+    );
+
+    return () => {
+      stopped = true;
+      stopPolling();
+      close?.();
+    };
+  }, [queryClient, runId, enabled, refreshAccessToken]);
 }

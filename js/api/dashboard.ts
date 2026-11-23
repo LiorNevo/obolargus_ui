@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./config";
+import { HttpError, apiFetch } from "./http";
 import type {
   ApiErrorEnvelope,
   AssetSearchResponse,
@@ -40,12 +40,20 @@ async function requestJson<T>(
 ): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await apiFetch(path, {
       signal: options.signal,
       headers: { accept: "application/json" },
     });
   } catch (caught) {
     if (options.signal.aborted) throw caught;
+    if (caught instanceof HttpError) {
+      throw new DashboardApiError(
+        caught.status,
+        caught.code,
+        caught.message,
+        caught.retryable,
+      );
+    }
     throw new DashboardApiError(
       0,
       "network",

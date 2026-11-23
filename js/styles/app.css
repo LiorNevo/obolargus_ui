@@ -133,3 +133,132 @@ body,
   height: auto;
   min-height: 0;
 }
+
+/* --- Authentication (spec 034) ------------------------------------------- */
+
+.obolargus_auth_screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--bg, #0b1220);
+  color: var(--fg, #e6edf7);
+}
+
+.obolargus_auth_card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(420px, 100%);
+  padding: 32px;
+  box-sizing: border-box;
+  border: 1px solid var(--border, #2c3a52);
+  border-radius: 12px;
+  background: var(--surface, #16233a);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
+}
+
+.obolargus_auth_card h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.obolargus_auth_intro {
+  margin: 0;
+  color: var(--fg-muted, #9aa8bd);
+  line-height: 1.5;
+}
+
+.obolargus_auth_alert {
+  padding: 10px 12px;
+  border: 1px solid var(--danger, #e56b6b);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger, #e56b6b) 12%, transparent);
+}
+
+.obolargus_auth_alert p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.obolargus_auth_google {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.obolargus_auth_actions {
+  display: flex;
+  gap: 8px;
+}
+
+.obolargus_auth_footnote {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fg-muted, #9aa8bd);
+}
+
+.obolargus_dev_banner {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--warning, #d59b2a);
+  background: color-mix(in srgb, var(--warning, #d59b2a) 22%, var(--surface, #16233a));
+  color: var(--fg, #e6edf7);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.obolargus_user_menu_trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 240px;
+}
+
+.obolargus_user_avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent, #4c8dff);
+  color: var(--on-accent, #ffffff);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.obolargus_user_email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.obolargus_user_menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+  padding: 8px;
+}
+
+.obolargus_user_menu_identity {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--fg-muted, #9aa8bd);
+}
+
+.obolargus_user_menu_error {
+  margin: 0;
+  color: var(--danger, #e56b6b);
+  font-size: 12px;
+}

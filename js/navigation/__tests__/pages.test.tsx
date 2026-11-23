@@ -1,6 +1,6 @@
 import { createPageRegistry } from "lx_client/js/navigation/registry";
 import type { PageDefinition } from "lx_client/js/navigation/types";
-import { UI_ACCESS_CONTEXT } from "../access";
+import { AUTHENTICATED_ACCESS_CONTEXT } from "../access";
 import { PAGES } from "../pages";
 
 const USER_FACING_IDS = [
@@ -137,7 +137,7 @@ describe("financial page registry", () => {
 
   it("derives navigation entries for every user-facing page", () => {
     const entries = createPageRegistry(PAGES).getNavigationEntries(
-      UI_ACCESS_CONTEXT,
+      AUTHENTICATED_ACCESS_CONTEXT,
     );
 
     const expectedNavigation = USER_FACING_IDS.filter(
@@ -153,7 +153,7 @@ describe("financial page registry", () => {
 
   it("keeps developer surfaces out of navigation", () => {
     const entries = createPageRegistry(PAGES).getNavigationEntries(
-      UI_ACCESS_CONTEXT,
+      AUTHENTICATED_ACCESS_CONTEXT,
     );
     const ids = entries.map((entry) => entry.id);
     const labels = entries.map((entry) => entry.label);

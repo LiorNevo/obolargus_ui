@@ -1,15 +1,15 @@
-import { API_BASE_URL } from "./config";
+import { apiFetch } from "./http";
 
 /**
- * Placeholder REST client for the obolargus-server API.
+ * Shared health probe.
  *
- * Real endpoint bindings (portfolios, holdings, transactions, rules, alerts)
- * are added in later iterations; this establishes the base URL wiring.
+ * Endpoint bindings (portfolios, holdings, transactions, rules, alerts) are
+ * added in later iterations; this establishes the base URL wiring.
  */
 export async function healthCheck(
   signal?: AbortSignal,
 ): Promise<{ status: string }> {
-  const response = await fetch(`${API_BASE_URL}/health`, { signal });
+  const response = await apiFetch("/health", { signal });
   if (!response.ok) {
     throw new Error(`health check failed with status ${response.status}`);
   }

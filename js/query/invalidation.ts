@@ -2,34 +2,33 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { LoadReport, RangeReport } from "../types/dataLoad";
 import { queryKeys } from "./keys";
 
-/** One report per load within a single-date or range result. */
-function reportsOf(report: LoadReport | RangeReport): LoadReport[] {
-  return "dates" in report ? report.dates.map((section) => section.report) : [report];
+/** Whether the report is a bounded range report (no per-identifier lines). */
+function isRangeReport(report: LoadReport | RangeReport): report is RangeReport {
+  return "dates" in report;
 }
 
 function affectedAssetIds(report: LoadReport | RangeReport): string[] {
+  if (isRangeReport(report)) {
+    // A range response carries per-date summaries only; per-identifier
+    // detail stays on the history detail endpoint.
+    return [];
+  }
   const ids = new Set<string>();
-  for (const loadReport of reportsOf(report)) {
-    for (const outcome of loadReport.identifiers) {
-      if (outcome.asset_id) ids.add(outcome.asset_id);
-    }
+  for (const outcome of report.identifiers) {
+    if (outcome.asset_id) ids.add(outcome.asset_id);
   }
   return [...ids];
 }
 
 function assetsCreatedOrAdopted(report: LoadReport | RangeReport): number {
-  return reportsOf(report).reduce(
-    (total, loadReport) =>
-      total + loadReport.assets_created + loadReport.assets_adopted,
-    0,
-  );
+  if (isRangeReport(report)) {
+    return report.totals.assets_created + report.totals.assets_adopted;
+  }
+  return report.assets_created + report.assets_adopted;
 }
 
 function loadedCount(report: LoadReport | RangeReport): number {
-  return reportsOf(report).reduce(
-    (total, loadReport) => total + loadReport.loaded,
-    0,
-  );
+  return isRangeReport(report) ? report.totals.loaded : report.loaded;
 }
 
 /**

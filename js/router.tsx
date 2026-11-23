@@ -3,7 +3,7 @@ import RouteErrorPage from "lx_client/js/components/RouteErrorPage";
 import { createAppRouter } from "lx_client/js/navigation/routes";
 import type { AppRouter } from "lx_client/js/navigation/routes";
 import { BASE_PATH } from "./config";
-import { UI_ACCESS_CONTEXT } from "./navigation/access";
+import { AUTHENTICATED_ACCESS_CONTEXT } from "./navigation/access";
 import { AppLayout } from "./navigation/AppLayout";
 import { PAGES } from "./navigation/pages";
 
@@ -21,7 +21,7 @@ export function getAppRouter(): AppRouter {
     appRouter = createAppRouter({
       pages: PAGES,
       Layout: AppLayout,
-      access: UI_ACCESS_CONTEXT,
+      access: AUTHENTICATED_ACCESS_CONTEXT,
       basename: BASE_PATH,
       notFoundElement: <NotFoundPage />,
       errorElement: <RouteErrorPage />,

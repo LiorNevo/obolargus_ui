@@ -28,7 +28,9 @@ describe("semantic layer transport", () => {
     const result = await fetchSemanticLayerDocument(undefined, onMeta);
 
     expect(String(fetchMock.mock.calls[0][0])).toContain("/domain/schema");
-    expect(fetchMock.mock.calls[0][1]).toEqual({ signal: undefined });
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(new Headers(init.headers).get("accept")).toBe("application/json");
+    expect(init.signal).toBeInstanceOf(AbortSignal);
     expect(result.canonicalText).toBe(semanticDictionaryCanonicalText);
     expect(result.document).toEqual(semanticDictionaryFixture);
     expect(onMeta).toHaveBeenCalledWith(
@@ -107,11 +109,15 @@ describe("semantic layer transport", () => {
         new Response(semanticDictionaryCanonicalText, { status: 200 }),
       );
     const controller = new AbortController();
+    controller.abort();
 
     await fetchSemanticLayerDocument(controller.signal);
 
     expect(String(fetchMock.mock.calls[0][0])).toContain("/domain/schema");
-    expect(fetchMock.mock.calls[0][1]).toEqual({ signal: controller.signal });
+    const signal = (fetchMock.mock.calls[0][1] as RequestInit)
+      .signal as AbortSignal;
+    expect(signal).toBeInstanceOf(AbortSignal);
+    expect(signal.aborted).toBe(true);
   });
 
   it("exposes a retryable class for status failures", () => {

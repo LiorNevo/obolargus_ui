@@ -21,8 +21,27 @@ function report(overrides: Partial<LoadReport> = {}): LoadReport {
 
 function rangeReport(overrides: Partial<RangeReport> = {}): RangeReport {
   return {
-    dates: [{ date: "2026-10-01", report: report() }],
+    dates: [],
     status: "complete",
+    dates_requested: 1,
+    dates_completed: 1,
+    dates_failed: 0,
+    dates_with_loads: 1,
+    dates_with_nothing_stored: 0,
+    totals: {
+      identifiers_attempted: 1,
+      loaded: 1,
+      no_op: 0,
+      not_resolved: 0,
+      no_data_for_date: 0,
+      unsupported_scheme: 0,
+      rejected: 0,
+      source_unavailable: 0,
+      rate_limited: 0,
+      storage_failure: 0,
+      assets_created: 0,
+      assets_adopted: 0,
+    },
     ...overrides,
   } as unknown as RangeReport;
 }

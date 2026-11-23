@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./config";
+import { apiFetch } from "./http";
 import type { HistoryLoadWire, RefreshWire } from "../types/chart";
 
 interface RequestOptions {
@@ -11,18 +11,18 @@ async function requestJson<T>(
   options: RequestOptions,
 ): Promise<T> {
   let response: Response;
+  const headers = new Headers(init.headers);
+  headers.set("accept", "application/json");
+  headers.set("content-type", "application/json");
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await apiFetch(path, {
       ...init,
       signal: options.signal,
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-        ...(init.headers ?? {}),
-      },
+      headers,
     });
   } catch (caught) {
     if (options.signal.aborted) throw caught;
+    if (caught instanceof Error) throw caught;
     throw new Error("The market data service could not be reached.", {
       cause: caught,
     });

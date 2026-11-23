@@ -1,5 +1,6 @@
 import "whatwg-fetch";
 import "@testing-library/jest-dom";
+import { act } from "@testing-library/react";
 import { toHaveNoViolations } from "jest-axe";
 import { TextDecoder, TextEncoder } from "node:util";
 
@@ -96,3 +97,15 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
       dispatchEvent: () => false,
     }) as unknown as MediaQueryList;
 }
+
+// The Morpheus chat provider starts an async status/conversation sync on
+// mount. Flush those updates while React's act environment is still on and
+// before Testing Library's automatic cleanup unmounts the tree, otherwise
+// React reports "not wrapped in act(...)" after the test body returns.
+// Capture the real timer because some suites install Jest fake timers.
+const realSetTimeout = globalThis.setTimeout;
+afterEach(async () => {
+  await act(async () => {
+    await new Promise((resolve) => realSetTimeout(resolve, 0));
+  });
+});

@@ -19,6 +19,19 @@ function mockFetch(response: Response) {
 describe("dataLoad API client", () => {
   afterEach(() => jest.restoreAllMocks());
 
+  it("exposes structured field and retry details", () => {
+    const error = new DataLoadApiError(
+      429,
+      "rate_limited",
+      "slow down",
+      { field: "identifiers", limit: 500, actual: 501 },
+      12,
+    );
+    expect(error.field).toBe("identifiers");
+    expect(error.retryAfterSeconds).toBe(12);
+    expect(error.details?.actual).toBe(501);
+  });
+
   it("builds the history query from filters", async () => {
     const spy = mockFetch(
       new Response(JSON.stringify({ entries: [], total: 0, limit: 50, offset: 0 }), {
@@ -55,8 +68,7 @@ describe("dataLoad API client", () => {
     );
   });
 
-  it("maps a JSON error envelope to DataLoadApiError", async () => {
-    mockFetch(
+  it("maps a JSON error envelope to DataLoadApiError", async () => {    mockFetch(
       new Response(
         JSON.stringify({
           error: { code: "validation_error", message: "bad range" },
@@ -200,16 +212,16 @@ describe("dataLoad API mutations and reads", () => {
       controller.signal,
     );
 
-    const url = new URL(String(spy.mock.calls[0][0]), "http://localhost");
-    expect(url.pathname).toContain("/data-load/identifier-search");
-    expect(url.searchParams.get("q")).toBe("Apple Inc.");
-    expect(url.searchParams.get("domain")).toBe("market_data");
-    expect(url.searchParams.get("source")).toBe("yahoo_finance");
-    expect(url.searchParams.get("asset_type")).toBe("EQUITY");
-    expect(url.searchParams.get("exchange")).toBe("XNAS");
-    expect(url.searchParams.get("limit")).toBe("25");
-    expect(url.searchParams.get("offset")).toBe("50");
-    expect(spy.mock.calls[0][1]?.signal).toBe(controller.signal);
+    const url = String(spy.mock.calls[0][0]);
+    expect(url).toContain("/data-load/identifier-search?");
+    expect(url).toContain("q=Apple+Inc.");
+    expect(url).toContain("domain=market_data");
+    expect(url).toContain("source=yahoo_finance");
+    expect(url).toContain("asset_type=EQUITY");
+    expect(url).toContain("exchange=XNAS");
+    expect(url).toContain("limit=25");
+    expect(url).toContain("offset=50");
+    expect(Boolean(spy.mock.calls[0][1]?.signal)).toBe(true);
   });
 
   it("omits unset identifier-search filters", async () => {

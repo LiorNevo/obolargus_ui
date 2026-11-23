@@ -182,13 +182,21 @@ export interface IdentifierOutcome {
   stored?: StoredFactDetail | null;
 }
 
+/** Overall status of a load or range run. */
+export type RunStatus =
+  | "complete"
+  | "partial"
+  | "failed"
+  | "cancelled"
+  | "interrupted";
+
 export interface LoadReport {
   report_version: number;
   run_id: string | null;
   data_domain: DataDomainId;
   as_of_date: string | null;
   requested_source: string | null;
-  status: "complete" | "partial" | "failed";
+  status: RunStatus;
   identifiers_requested_raw: number;
   identifiers_duplicated: number;
   identifiers_attempted: number;
@@ -226,6 +234,34 @@ export interface RangeTotals {
   assets_adopted: number;
 }
 
+/** One date's bounded summary line in a range report. */
+export interface DateLoadSummary {
+  date: string;
+  run_id: string | null;
+  status: RunStatus;
+  identifiers_attempted: number;
+  loaded: number;
+  no_op: number;
+  not_resolved: number;
+  no_data_for_date: number;
+  unsupported_scheme: number;
+  rejected: number;
+  source_unavailable: number;
+  rate_limited: number;
+  storage_failure: number;
+  assets_created: number;
+  assets_adopted: number;
+  per_source_attempted: Record<string, number>;
+  per_source_failed: Record<string, number>;
+  started_at: string;
+  ended_at: string;
+  duration_ms: number;
+}
+
+/**
+ * @deprecated Use {@link DateLoadSummary}. Kept so older fixtures still
+ * type-check while the page components migrate.
+ */
 export interface DateLoadSection {
   date: string;
   report: LoadReport;
@@ -238,13 +274,15 @@ export interface RangeReport {
   from: string;
   to: string;
   concurrency: number;
-  status: "complete" | "partial" | "failed";
+  status: RunStatus;
   dates_requested: number;
+  dates_completed: number;
+  dates_failed: number;
   dates_with_loads: number;
   dates_with_nothing_stored: number;
   totals: RangeTotals;
   run_ids: Array<string | null>;
-  dates: DateLoadSection[];
+  dates: DateLoadSummary[];
   started_at: string;
   ended_at: string;
   duration_ms: number;
@@ -301,7 +339,7 @@ export interface HistoryDetail {
     from: string;
     to: string;
     concurrency: number;
-    status: "complete" | "partial" | "failed";
+    status: RunStatus;
     dates_requested: number;
     dates_completed: number;
     dates_with_loads: number;
@@ -330,7 +368,14 @@ export interface StopRangeResult {
 
 export interface RangeProgress {
   group_id: string;
-  status: "starting" | "running" | "complete" | "partial" | "failed";
+  status:
+    | "starting"
+    | "running"
+    | "complete"
+    | "partial"
+    | "failed"
+    | "cancelled"
+    | "interrupted";
   dates_requested: number | null;
   dates_completed: number;
   dates_failed: number;
