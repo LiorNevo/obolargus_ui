@@ -204,6 +204,7 @@ export interface LoadReport {
   no_op: number;
   not_resolved: number;
   no_data_for_date: number;
+  calendar_closed?: number;
   unsupported_scheme: number;
   rejected: number;
   source_unavailable: number;
@@ -225,6 +226,7 @@ export interface RangeTotals {
   no_op: number;
   not_resolved: number;
   no_data_for_date: number;
+  calendar_closed?: number;
   unsupported_scheme: number;
   rejected: number;
   source_unavailable: number;
@@ -244,6 +246,7 @@ export interface DateLoadSummary {
   no_op: number;
   not_resolved: number;
   no_data_for_date: number;
+  calendar_closed?: number;
   unsupported_scheme: number;
   rejected: number;
   source_unavailable: number;
@@ -280,6 +283,7 @@ export interface RangeReport {
   dates_failed: number;
   dates_with_loads: number;
   dates_with_nothing_stored: number;
+  dates_fully_closed?: number;
   totals: RangeTotals;
   run_ids: Array<string | null>;
   dates: DateLoadSummary[];
@@ -303,6 +307,7 @@ export interface HistoryEntry {
   no_op: number;
   not_resolved: number;
   no_data_for_date: number;
+  calendar_closed?: number;
   unsupported_scheme: number;
   rejected: number;
   source_unavailable: number;
@@ -318,6 +323,7 @@ export interface HistoryEntry {
   dates_requested: number;
   dates_completed: number;
   dates_with_loads: number;
+  dates_fully_closed?: number;
   range_concurrency: number | null;
   source_id: string | null;
   before_enabled: boolean | null;
@@ -344,6 +350,7 @@ export interface HistoryDetail {
     dates_completed: number;
     dates_with_loads: number;
     dates_with_nothing_stored: number;
+    dates_fully_closed?: number;
     totals: RangeTotals;
     dates: DateLoadSection[];
   } | null;
@@ -380,6 +387,8 @@ export interface RangeProgress {
   dates_completed: number;
   dates_failed: number;
   dates_with_loads: number;
+  calendar_closed?: number;
+  dates_fully_closed?: number;
   started_at: string | null;
   updated_at: string;
 }

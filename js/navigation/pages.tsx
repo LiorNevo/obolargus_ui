@@ -9,6 +9,7 @@ import { TestPage } from "../components/TestPage";
 const LazyDashboardPage = lazy(() => import("../pages/DashboardPage"));
 const LazyDataLoadPage = lazy(() => import("../pages/DataLoadPage"));
 const LazySemanticLayerPage = lazy(() => import("../pages/SemanticLayerPage"));
+const LazyCalendarsPage = lazy(() => import("../pages/CalendarsPage"));
 const LazyAutomationLandingPage = lazy(
   () => import("../pages/automation/AutomationLandingPage"),
 );
@@ -83,6 +84,17 @@ export const PAGES: PageDefinition[] = [
     availability: "available",
     showInNavigation: true,
     element: suspense(<LazySemanticLayerPage />),
+  },
+  {
+    id: "calendars",
+    path: "/calendars",
+    label: "Calendars",
+    title: "Exchange calendars",
+    visibility: "restricted",
+    requiredPermission: "workspace:view",
+    availability: "available",
+    showInNavigation: true,
+    element: suspense(<LazyCalendarsPage />),
   },
   {
     id: "automation",

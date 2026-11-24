@@ -645,6 +645,11 @@ export function DataLoadPage() {
             <dd>{progress?.dates_failed ?? 0}</dd>
             <dt>Dates with loads</dt>
             <dd>{progress?.dates_with_loads ?? 0}</dd>
+            <dt>Fully closed dates / closed lines</dt>
+            <dd>
+              {progress?.dates_fully_closed ?? 0} /{" "}
+              {progress?.calendar_closed ?? 0}
+            </dd>
             <dt>Started</dt>
             <dd>{inFlightRange.startedAt}</dd>
             <dt>Last update</dt>

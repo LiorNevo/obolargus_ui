@@ -1,5 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  createCalendarAssignment,
+  deleteCalendarAssignment,
+  importCalendar,
+  retireCalendar,
+} from "../api/calendar";
+import type { CalendarDocument } from "../types/calendar";
+import {
   loadOnce,
   loadRange,
   startLoadRange,
@@ -16,6 +23,7 @@ import type {
   StopRangeResult,
 } from "../types/dataLoad";
 import {
+  invalidateAfterCalendarWrite,
   invalidateAfterLoad,
   invalidateAfterSourceToggle,
 } from "./invalidation";
@@ -509,5 +517,65 @@ export function useDeleteContextMutation(flowId: string) {
         queryKey: automationKeys.automation.context(flowId),
       });
     },
+  });
+}
+
+/** Imports or replaces one calendar document. */
+export function useImportCalendarMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (variables: {
+      document: CalendarDocument;
+      expectedVersion: number | null;
+    }) => {
+      assertOnlineForWrite();
+      return importCalendar(variables.document, variables.expectedVersion);
+    },
+    retry: false,
+    onSuccess: () => invalidateAfterCalendarWrite(queryClient),
+  });
+}
+
+/** Retires one calendar after the operator confirms the affected assets. */
+export function useRetireCalendarMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (variables: { mic: string; confirm: boolean }) => {
+      assertOnlineForWrite();
+      return retireCalendar(variables.mic, variables.confirm);
+    },
+    retry: false,
+    onSuccess: () => invalidateAfterCalendarWrite(queryClient),
+  });
+}
+
+/** Creates one effective-dated assignment. */
+export function useCreateAssignmentMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (variables: {
+      asset_id: string;
+      mic: string;
+      valid_from: string;
+      valid_to: string | null;
+    }) => {
+      assertOnlineForWrite();
+      return createCalendarAssignment(variables);
+    },
+    retry: false,
+    onSuccess: () => invalidateAfterCalendarWrite(queryClient),
+  });
+}
+
+/** Removes one assignment. */
+export function useDeleteAssignmentMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => {
+      assertOnlineForWrite();
+      return deleteCalendarAssignment(id);
+    },
+    retry: false,
+    onSuccess: () => invalidateAfterCalendarWrite(queryClient),
   });
 }

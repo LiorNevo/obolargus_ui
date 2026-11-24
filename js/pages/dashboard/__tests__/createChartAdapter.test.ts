@@ -189,6 +189,74 @@ describe("chart adapter", () => {
     expect(result.sources[0].status).toBe("answered");
   });
 
+  it("maps coverage and reuses the cached read", async () => {
+    const client = createTestQueryClient();
+    const loadCoverage = jest.fn().mockResolvedValue({
+      asset_id: "22222222-2222-4222-8222-222222222222",
+      from: "2026-11-16",
+      to: "2026-11-20",
+      as_of: "2026-11-24T12:00:00Z",
+      segments: [
+        {
+          mic: "XNAS",
+          name: "Nasdaq",
+          from: "2026-11-16",
+          to: "2026-11-20",
+          exact: true,
+          reason: null,
+        },
+      ],
+      expected_session_count: 5,
+      missing_sessions: ["2026-11-18"],
+      latest_completed_session: "2026-11-21",
+    });
+    const api: ChartApi = {
+      searchIdentifiers: () => Promise.resolve(searchResponse()),
+      loadOnce: () => Promise.resolve(loadReport()),
+      historyLoad: () => Promise.resolve(historyWire()),
+      loadCoverage,
+      refreshAsset: () => Promise.resolve(refreshWire()),
+      loadSeriesPage: () => Promise.resolve(seriesPage("2026-11-13")),
+    };
+    const adapter = createChartAdapter(client, api);
+    const range = { from: "2026-11-16", to: "2026-11-20" };
+    const signal = new AbortController().signal;
+    const coverage = await adapter.loadCoverage?.(
+      "22222222-2222-4222-8222-222222222222",
+      range,
+      { signal },
+    );
+    expect(coverage).toMatchObject({
+      assetId: "22222222-2222-4222-8222-222222222222",
+      expectedSessionCount: 5,
+      missingSessions: ["2026-11-18"],
+      latestCompletedSession: "2026-11-21",
+    });
+    expect(coverage?.segments[0]).toMatchObject({
+      mic: "XNAS",
+      exact: true,
+    });
+
+    await adapter.loadCoverage?.(
+      "22222222-2222-4222-8222-222222222222",
+      range,
+      { signal },
+    );
+    expect(loadCoverage).toHaveBeenCalledTimes(1);
+  });
+
+  it("omits coverage when the host does not provide it", () => {
+    const api: ChartApi = {
+      searchIdentifiers: () => Promise.resolve(searchResponse()),
+      loadOnce: () => Promise.resolve(loadReport()),
+      historyLoad: () => Promise.resolve(historyWire()),
+      refreshAsset: () => Promise.resolve(refreshWire()),
+      loadSeriesPage: () => Promise.resolve(seriesPage("2026-11-13")),
+    };
+    const adapter = createChartAdapter(createTestQueryClient(), api);
+    expect(adapter.loadCoverage).toBeUndefined();
+  });
+
   it("loads one history window and invalidates the series", async () => {
     const client = createTestQueryClient();
     const invalidate = jest.spyOn(client, "invalidateQueries");

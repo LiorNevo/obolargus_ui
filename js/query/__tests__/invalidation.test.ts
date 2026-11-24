@@ -64,6 +64,14 @@ function seed(client: ReturnType<typeof createTestQueryClient>) {
     queryKeys.marketSeries.detail("asset-2", "2026-10-01", "2026-10-02"),
     {},
   );
+  client.setQueryData(
+    queryKeys.marketCoverage.detail("asset-1", "2026-10-01", "2026-10-02"),
+    {},
+  );
+  client.setQueryData(
+    queryKeys.marketCoverage.detail("asset-2", "2026-10-01", "2026-10-02"),
+    {},
+  );
   client.setQueryData(queryKeys.assets.search("Apple", 20), {});
   client.setQueryData(
     queryKeys.dataLoad.identifierSearch({
@@ -230,10 +238,25 @@ describe("invalidateAfterHistoryLoad", () => {
     expect(
       client.getQueryState(queryKeys.assets.search("Apple", 20))?.isInvalidated,
     ).toBe(false);
+    expect(
+      client.getQueryState(
+        queryKeys.marketCoverage.detail("asset-1", "2026-10-01", "2026-10-02"),
+      )?.isInvalidated,
+    ).toBe(true);
+    expect(
+      client.getQueryState(
+        queryKeys.marketCoverage.detail("asset-2", "2026-10-01", "2026-10-02"),
+      )?.isInvalidated,
+    ).toBe(false);
 
     await invalidateAfterHistoryLoad(client, "asset-2", { createdAssets: true });
     expect(
       client.getQueryState(queryKeys.assets.search("Apple", 20))?.isInvalidated,
+    ).toBe(true);
+    expect(
+      client.getQueryState(
+        queryKeys.marketCoverage.detail("asset-2", "2026-10-01", "2026-10-02"),
+      )?.isInvalidated,
     ).toBe(true);
   });
 });

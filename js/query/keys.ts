@@ -58,6 +58,21 @@ export const queryKeys = {
     all: () => ["market-series"] as const,
   },
 
+  marketCoverage: {
+    detail: (assetId: string, from: string, to: string) =>
+      ["market-coverage", assetId, { from, to }] as const,
+    forAsset: (assetId: string) => ["market-coverage", assetId] as const,
+    all: () => ["market-coverage"] as const,
+  },
+
+  calendars: {
+    list: () => ["calendars", "list"] as const,
+    detail: (mic: string) => ["calendars", "detail", mic] as const,
+    assignments: (filter: { assetId?: string; mic?: string }) =>
+      ["calendars", "assignments", filter] as const,
+    all: () => ["calendars"] as const,
+  },
+
   dataLoad: {
     domains: () => ["data-load", "domains"] as const,    sources: (domain: string | null) =>
       ["data-load", "sources", domain] as const,

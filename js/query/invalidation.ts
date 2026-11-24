@@ -72,6 +72,9 @@ export async function invalidateAfterLoad(
         client.invalidateQueries({
           queryKey: queryKeys.marketSeries.forAsset(assetId),
         }),
+        client.invalidateQueries({
+          queryKey: queryKeys.marketCoverage.forAsset(assetId),
+        }),
       );
     }
   } else if (loadedCount(input.report) > 0) {
@@ -79,6 +82,7 @@ export async function invalidateAfterLoad(
     // a chart cannot keep pre-load data.
     tasks.push(
       client.invalidateQueries({ queryKey: queryKeys.marketSeries.all() }),
+      client.invalidateQueries({ queryKey: queryKeys.marketCoverage.all() }),
     );
   }
 
@@ -118,6 +122,16 @@ export async function invalidateAfterProgressTerminal(
 }
 
 /** Invalidates the reads affected by a bounded chart history load. */
+/** Calendar or assignment writes change every chart's basis. */
+export async function invalidateAfterCalendarWrite(
+  client: QueryClient,
+): Promise<void> {
+  await Promise.all([
+    client.invalidateQueries({ queryKey: queryKeys.calendars.all() }),
+    client.invalidateQueries({ queryKey: queryKeys.marketCoverage.all() }),
+  ]);
+}
+
 export async function invalidateAfterHistoryLoad(
   client: QueryClient,
   assetId: string,
@@ -126,6 +140,9 @@ export async function invalidateAfterHistoryLoad(
   const tasks: Array<Promise<void>> = [
     client.invalidateQueries({
       queryKey: queryKeys.marketSeries.forAsset(assetId),
+    }),
+    client.invalidateQueries({
+      queryKey: queryKeys.marketCoverage.forAsset(assetId),
     }),
   ];
   if (options.createdAssets) {

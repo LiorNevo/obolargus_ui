@@ -8,6 +8,10 @@ import {
   fetchDailyBars,
   type SeriesApi,
 } from "../pages/dashboard/fetchDailyBars";
+import {
+  fetchCoverage,
+  type CoverageApi,
+} from "../pages/dashboard/fetchCoverage";
 import { normalizeSearchQuery, queryKeys } from "./keys";
 import { withReadProvenance } from "./provenance";
 
@@ -53,6 +57,27 @@ export function marketSeriesQueryOptions(
     queryKey,
     queryFn: withReadProvenance(queryKey, ({ signal }, onMeta) =>
       fetchDailyBars(api, assetId, range, { signal, onMeta }),
+    ),
+    staleTime: SERIES_STALE_MS,
+    gcTime: SERIES_GC_MS,
+  };
+}
+
+/** Cache options for one calendar-aware coverage read. */
+export function marketCoverageQueryOptions(
+  api: CoverageApi,
+  assetId: string,
+  range: DateRange,
+): DashboardQueryOptions<Awaited<ReturnType<typeof fetchCoverage>>> {
+  const queryKey = queryKeys.marketCoverage.detail(
+    assetId,
+    range.from,
+    range.to,
+  );
+  return {
+    queryKey,
+    queryFn: withReadProvenance(queryKey, ({ signal }, onMeta) =>
+      fetchCoverage(api, assetId, range, { signal, onMeta }),
     ),
     staleTime: SERIES_STALE_MS,
     gcTime: SERIES_GC_MS,

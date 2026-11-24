@@ -6,6 +6,7 @@ const OUTCOME_LABELS: Record<string, string> = {
   no_op: "No-op — identical fact already stored",
   not_resolved: "Not resolved — no asset claims this identifier",
   no_data_for_date: "No data exists for this date",
+  calendar_closed: "The exchange calendar closed this date",
   unsupported_scheme: "No enabled source supports this identifier type",
   rejected: "Rejected by the source",
   source_unavailable: "Source unavailable",

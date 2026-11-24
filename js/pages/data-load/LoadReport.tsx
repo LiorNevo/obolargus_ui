@@ -53,9 +53,10 @@ export const LoadReport = memo(function LoadReport({
         <dd>
           {report.loaded} / {report.no_op} / {report.not_resolved}
         </dd>
-        <dt>No data / unsupported</dt>
+        <dt>No data / calendar closed / unsupported</dt>
         <dd>
-          {report.no_data_for_date} / {report.unsupported_scheme}
+          {report.no_data_for_date} / {report.calendar_closed ?? 0} /{" "}
+          {report.unsupported_scheme}
         </dd>
         <dt>Assets created / adopted</dt>
         <dd>

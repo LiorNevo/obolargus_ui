@@ -7,6 +7,7 @@ const USER_FACING_IDS = [
   "dashboard",
   "data-load",
   "semantic-layer",
+  "calendars",
   "automation",
   "automation-flows",
   "automation-flow",
@@ -35,6 +36,11 @@ const EXPECTED_PAGES: Record<
   },
   "semantic-layer": {
     label: "Semantic Layer",
+    permission: "workspace:view",
+    availability: "available",
+  },
+  calendars: {
+    label: "Calendars",
     permission: "workspace:view",
     availability: "available",
   },

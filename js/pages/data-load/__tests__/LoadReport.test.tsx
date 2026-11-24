@@ -74,6 +74,14 @@ describe("LoadReport", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("shows calendar-closed lines separately from fetch attempts", () => {
+    render(<LoadReport report={report({ calendar_closed: 3 })} />);
+    expect(
+      screen.getByText("No data / calendar closed / unsupported"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("0 / 3 / 0")).toBeInTheDocument();
+  });
+
   it("raises a failure banner for a rejected line", () => {
     const rejected = report({
       status: "partial",

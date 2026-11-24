@@ -12,7 +12,11 @@ const session = {
   refresh_token: "refresh-1",
   token_type: "Bearer",
   expires_in: 900,
-  actor: { id: "actor-1", email: "owner@example.com" },
+  actor: {
+    id: "actor-1",
+    email: "owner@example.com",
+    is_primary_owner: true,
+  },
 };
 
 function resetStore(): void {
@@ -48,7 +52,11 @@ describe("auth store", () => {
 
     const state = useAuthStore.getState();
     expect(state.status).toBe("signedIn");
-    expect(state.actor).toEqual({ id: "actor-1", email: "owner@example.com" });
+    expect(state.actor).toEqual({
+      id: "actor-1",
+      email: "owner@example.com",
+      isPrimaryOwner: true,
+    });
     expect(state.accessToken).toBe("access-1");
     expect(state.refreshToken).toBe("refresh-1");
     expect(state.error).toBeNull();

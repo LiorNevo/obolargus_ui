@@ -1,0 +1,158 @@
+.obolargus_calendars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  min-height: 100%;
+}
+
+.obolargus_calendars_header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.obolargus_calendars_header h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+.obolargus_calendars_header p,
+.obolargus_calendars_note {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--obolargus-muted, var(--muted-foreground));
+}
+
+.obolargus_calendars_notice,
+.obolargus_calendars_error {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--obolargus-accent, var(--primary)) 10%, transparent);
+}
+
+.obolargus_calendars_error {
+  background: color-mix(in srgb, var(--obolargus-danger, #c0392b) 12%, transparent);
+}
+
+.obolargus_calendars_layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  .obolargus_calendars_layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.obolargus_calendars_table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.obolargus_calendars_caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 6px;
+}
+
+.obolargus_calendars_table th,
+.obolargus_calendars_table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--obolargus-border, var(--border));
+  text-align: left;
+  vertical-align: top;
+}
+
+.obolargus_calendars_table th span {
+  display: block;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--obolargus-muted, var(--muted-foreground));
+}
+
+.obolargus_calendars_table tr[data-active="true"] {
+  background: color-mix(in srgb, var(--obolargus-accent, var(--primary)) 8%, transparent);
+}
+
+.obolargus_calendars_link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--obolargus-accent, var(--primary));
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.obolargus_calendars_detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--obolargus-border, var(--border));
+  border-radius: 8px;
+}
+
+.obolargus_calendars_detail h2,
+.obolargus_calendars_detail h3 {
+  margin: 0;
+}
+
+.obolargus_calendars_detail dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.obolargus_calendars_detail dd {
+  margin: 0;
+}
+
+.obolargus_calendars_actions {
+  display: flex;
+  gap: 8px;
+}
+
+.obolargus_calendars_detail textarea {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.obolargus_calendars_detail label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.obolargus_calendars_assignments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.obolargus_calendars_assignments li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.obolargus_calendars_assign_form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+}

@@ -3,9 +3,11 @@ import type {
   ChartCreateAndLoadRequest,
   ChartCreateAndLoadResult,
   ChartDataAdapter,
+  ChartCoverage,
   ChartHistoryLoadRequest,
   ChartHistoryLoadResult,
   ChartRefreshResult,
+  DateRange,
   InstrumentSearchCandidate,
   InstrumentSearchParams,
   InstrumentSearchResult,
@@ -14,9 +16,11 @@ import {
   DashboardDataError,
 } from "lx_client/js/components/Dashboard/types";
 import { fetchIdentifierSearch, loadOnce } from "../../api/dataLoad";
-import { historyLoad, refreshAsset } from "../../api/chart";
+import { historyLoad, loadCoverage, refreshAsset } from "../../api/chart";
 import { loadSeriesPage } from "../../api/dashboard";
 import { assertOnlineForWrite } from "../../offline/assertOnlineForWrite";
+import { readThroughCache } from "../../query/dashboardCache";
+import { marketCoverageQueryOptions } from "../../query/dashboardQueries";
 import {
   invalidateAfterHistoryLoad,
   invalidateAfterLoad,
@@ -32,6 +36,7 @@ export interface ChartApi {
   searchIdentifiers: typeof fetchIdentifierSearch;
   loadOnce: typeof loadOnce;
   historyLoad: typeof historyLoad;
+  loadCoverage?: typeof loadCoverage;
   refreshAsset: typeof refreshAsset;
   loadSeriesPage: typeof loadSeriesPage;
 }
@@ -40,6 +45,7 @@ const defaultApi: ChartApi = {
   searchIdentifiers: fetchIdentifierSearch,
   loadOnce,
   historyLoad,
+  loadCoverage,
   refreshAsset,
   loadSeriesPage,
 };
@@ -139,6 +145,10 @@ function mapHistory(
     sourceId: wire.source_id,
     loaded: wire.loaded,
     noOp: wire.no_op,
+    expectedSessions: wire.expected_sessions,
+    closedSessions: wire.closed_sessions,
+    unexpectedSessions: wire.unexpected_sessions,
+    calendarMic: wire.calendar_mic,
     noData: wire.no_data,
     sourceUnavailable: wire.source_unavailable,
     rateLimited: wire.rate_limited,
@@ -166,7 +176,7 @@ export function createChartAdapter(
   const creationInFlight = new Map<string, Promise<ChartCreateAndLoadResult>>();
   const refreshInFlight = new Map<string, Promise<ChartRefreshResult>>();
 
-  return {
+  const adapter: ChartDataAdapter = {
     async searchInstruments(
       params: InstrumentSearchParams,
       options: { signal: AbortSignal },
@@ -389,4 +399,20 @@ export function createChartAdapter(
       return promise;
     },
   };
+
+  if (api.loadCoverage) {
+    const load = api.loadCoverage;
+    adapter.loadCoverage = (
+      assetId: string,
+      range: DateRange,
+      options: { signal: AbortSignal },
+    ): Promise<ChartCoverage> =>
+      readThroughCache(
+        queryClient,
+        marketCoverageQueryOptions({ loadCoverage: load }, assetId, range),
+        options.signal,
+      );
+  }
+
+  return adapter;
 }

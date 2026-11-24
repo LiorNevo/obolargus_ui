@@ -30,6 +30,11 @@ export const RangeReport = memo(function RangeReport({
           {report.dates_requested} / {report.dates_with_loads} /{" "}
           {report.dates_with_nothing_stored}
         </dd>
+        <dt>Fully closed dates / calendar-closed lines</dt>
+        <dd>
+          {report.dates_fully_closed ?? 0} /{" "}
+          {report.totals.calendar_closed ?? 0}
+        </dd>
         <dt>Loaded / failed</dt>
         <dd>
           {report.totals.loaded} /{" "}

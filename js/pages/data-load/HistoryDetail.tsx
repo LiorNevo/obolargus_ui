@@ -71,11 +71,14 @@ export const HistoryDetail = memo(function HistoryDetail({
             <dd>
               {detail.range.dates_completed} of {detail.range.dates_requested}
             </dd>
-            <dt>Dates with loads / nothing stored</dt>
+            <dt>Dates with loads / nothing stored / fully closed</dt>
             <dd>
               {detail.range.dates_with_loads} /{" "}
-              {detail.range.dates_with_nothing_stored}
+              {detail.range.dates_with_nothing_stored} /{" "}
+              {detail.range.dates_fully_closed ?? 0}
             </dd>
+            <dt>Calendar-closed lines</dt>
+            <dd>{detail.range.totals.calendar_closed ?? 0}</dd>
             <dt>Loaded / attempted</dt>
             <dd>
               {detail.range.totals.loaded} /{" "}

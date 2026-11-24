@@ -12,6 +12,8 @@ import {
 export interface AuthActor {
   id: string;
   email: string;
+  /** Absent on sessions persisted before the calendar feature. */
+  isPrimaryOwner?: boolean;
 }
 
 /** UI-safe sign-in failure. */
@@ -27,7 +29,7 @@ interface LoginResponseWire {
   refresh_token: string;
   token_type: string;
   expires_in: number;
-  actor: { id: string; email: string };
+  actor: { id: string; email: string; is_primary_owner?: boolean };
 }
 
 interface RefreshResponseWire {
@@ -218,7 +220,11 @@ export const useAuthStore = create<AuthStore>()(
           }
           set({
             status: "signedIn",
-            actor: { id: wire.actor.id, email: wire.actor.email },
+            actor: {
+              id: wire.actor.id,
+              email: wire.actor.email,
+              isPrimaryOwner: wire.actor.is_primary_owner === true,
+            },
             accessToken: wire.access_token,
             refreshToken: wire.refresh_token,
             error: null,
