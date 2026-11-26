@@ -14,6 +14,41 @@ import type {
   SearchCandidate,
 } from "../../types/dataLoad";
 
+jest.mock("lx_client/js/components/CodeInput", () => ({
+  CodeInput: ({
+    id,
+    label,
+    value,
+    onChange,
+    language,
+    errors = [],
+  }: {
+    id: string;
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    language?: string;
+    errors?: string[];
+  }) => (
+    <div>
+      <label htmlFor={id}>{label}</label>
+      <textarea
+        id={id}
+        value={value}
+        data-language={language}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {errors.length > 0 && (
+        <ul role="alert">
+          {errors.map((error) => (
+            <li key={error}>{error}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  ),
+}));
+
 jest.mock("../../api/dataLoad", () => {
   const actual = jest.requireActual("../../api/dataLoad");
   return {

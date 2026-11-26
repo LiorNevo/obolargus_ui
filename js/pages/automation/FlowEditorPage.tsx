@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { usePageTitle } from "lx_client/js/navigation/usePageTitle";
 import { Button } from "lx_client/js/components/Button";
+import { CodeInput } from "lx_client/js/components/CodeInput";
 import { Input } from "lx_client/js/components/Input";
 import { Modal } from "lx_client/js/components/Modal";
-import { TextArea } from "lx_client/js/components/TextArea";
 import { Skeleton } from "lx_client/js/components/Skeleton";
 import TabPanel from "lx_client/js/components/TabPanel";
 import {
@@ -1139,9 +1139,10 @@ export default function FlowEditorPage() {
             Publish a version before running this flow.
           </p>
         ) : null}
-        <TextArea
+        <CodeInput
           id="run-inputs"
           label="Run inputs (JSON)"
+          language="json"
           rows={8}
           value={runInputs}
           onChange={setRunInputs}

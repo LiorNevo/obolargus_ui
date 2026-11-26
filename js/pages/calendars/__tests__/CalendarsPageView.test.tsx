@@ -5,6 +5,44 @@ import { axe } from "jest-axe";
 import { CalendarsPageView } from "../CalendarsPageView";
 import { useAuthStore } from "../../../auth/store";
 
+jest.mock("lx_client/js/components/CodeInput", () => ({
+  CodeInput: ({
+    id,
+    label,
+    value,
+    onChange,
+    language,
+    disabled,
+    errors = [],
+  }: {
+    id: string;
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    language?: string;
+    disabled?: boolean;
+    errors?: string[];
+  }) => (
+    <div>
+      <label htmlFor={id}>{label}</label>
+      <textarea
+        id={id}
+        value={value}
+        disabled={disabled}
+        data-language={language}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {errors.length > 0 && (
+        <ul role="alert">
+          {errors.map((error) => (
+            <li key={error}>{error}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  ),
+}));
+
 const mockCalendar = {
   mic: "XNAS",
   name: "Nasdaq",
@@ -169,7 +207,9 @@ describe("CalendarsPageView writes", () => {
     const user = userEvent.setup();
     render(<CalendarsPageView />);
     await user.click(screen.getByRole("button", { name: "XNAS" }));
-    fireEvent.change(screen.getByLabelText("Calendar JSON document"), {
+    const input = screen.getByLabelText("Calendar JSON document");
+    expect(input).toHaveAttribute("data-language", "json");
+    fireEvent.change(input, {
       target: { value: '{"mic":"XNAS"}' },
     });
     await user.type(screen.getByLabelText("Expected version"), "2");

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { CodeInput } from "lx_client/js/components/CodeInput";
 import { Button } from "lx_client/js/components/Button";
 import { AUTH_ENABLED } from "../../auth/config";
 import { useAuthStore } from "../../auth/store";
@@ -218,11 +219,13 @@ export function CalendarsPageView() {
                   </div>
                 )}
                 <h3>Import</h3>
-                <textarea
-                  aria-label="Calendar JSON document"
+                <CodeInput
+                  id="calendar-import"
+                  label="Calendar JSON document"
+                  language="json"
                   rows={6}
                   value={document}
-                  onChange={(event) => setDocument(event.target.value)}
+                  onChange={setDocument}
                   disabled={!canWrite}
                   placeholder='{"mic":"XNAS", …}'
                 />

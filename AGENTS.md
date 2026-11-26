@@ -114,7 +114,9 @@ Operational rules for contributors and AI agents working in this app.
 
 - `js/pages/automation/` composes the reusable
   `lx_client/js/components/FlowEditor` and the SchemaForm adapters in
-  `DataLoadNodeFields.tsx`.
+  `DataLoadNodeFields.tsx`. Structured node fields use the shared
+  `lx_client/js/components/CodeInput`; do not render JSON, YAML, identifier
+  lines, or lx_engine expressions in a plain `TextArea`.
 - `/automation` is the entry point: it opens the most recently updated active
   flow in the editor, or falls back to the flow list when no active flow
   exists. The list/create/template surface lives at `/automation/flows`.

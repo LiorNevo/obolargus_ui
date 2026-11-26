@@ -8,6 +8,53 @@ import {
 } from "../DataLoadNodeFields";
 import { renderWithQueryClient } from "../../../query/testUtils";
 
+jest.mock("lx_client/js/components/CodeInput", () => ({
+  CodeInput: ({
+    id,
+    label,
+    value,
+    onChange,
+    language,
+    rows,
+    disabled,
+    required,
+    errors = [],
+    placeholder,
+  }: {
+    id: string;
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    language?: string;
+    rows?: number;
+    disabled?: boolean;
+    required?: boolean;
+    errors?: string[];
+    placeholder?: string;
+  }) => (
+    <div>
+      <label htmlFor={id}>{label}</label>
+      <textarea
+        id={id}
+        value={value}
+        disabled={disabled}
+        required={required}
+        placeholder={placeholder}
+        data-language={language}
+        data-rows={rows}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {errors.length > 0 && (
+        <ul role="alert">
+          {errors.map((error) => (
+            <li key={error}>{error}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  ),
+}));
+
 jest.mock("../../../query/dataLoadQueries", () => ({
   sourcesQueryOptions: () => ({
     queryKey: ["data-load", "sources", "market_data"],
@@ -59,6 +106,7 @@ describe("data-load field adapters", () => {
     );
     const input = screen.getByLabelText("As of date");
     expect(input).toHaveValue("2026-01-02");
+    expect(input).toHaveAttribute("data-language", "lx_engine");
     fireEvent.change(input, { target: { value: "2026-02-03" } });
     expect(onChange).toHaveBeenLastCalledWith("2026-02-03");
 
@@ -97,6 +145,7 @@ describe("data-load field adapters", () => {
     );
     const textarea = screen.getByLabelText("Identifiers");
     expect(textarea).toHaveValue("TICKER:XNAS:AAPL\nTICKER:XNAS:MSFT");
+    expect(textarea).toHaveAttribute("data-language", "identifier");
     fireEvent.change(textarea, { target: { value: "TICKER:XNAS:IBM" } });
     expect(onChange).toHaveBeenCalled();
     const latest = onChange.mock.calls.at(-1)?.[0] as Array<{
@@ -104,6 +153,51 @@ describe("data-load field adapters", () => {
       value: string;
     }>;
     expect(latest[0]).toEqual({ scheme: "TICKER", value: "XNAS:IBM" });
+  });
+
+  it("forwards required, disabled, rows, and errors to the code editor", () => {
+    render(
+      <IdentifierBatch
+        id="identifiers"
+        path="identifiers"
+        value={[]}
+        schema={{ title: "Identifiers" }}
+        onChange={jest.fn()}
+        disabled
+        required
+        errors={["Fix this."]}
+      />,
+    );
+    const input = screen.getByLabelText("Identifiers");
+    expect(input).toBeDisabled();
+    expect(input).toBeRequired();
+    expect(input).toHaveAttribute("data-rows", "5");
+    expect(screen.getByRole("alert")).toHaveTextContent("Fix this.");
+  });
+
+  it("replaces the editor text when the selected node value changes", () => {
+    const onChange = jest.fn();
+    const { rerender } = render(
+      <DateOrExpression
+        id="as-of-date"
+        path="as_of_date"
+        value="2026-01-02"
+        schema={{ title: "As of date" }}
+        onChange={onChange}
+      />,
+    );
+    expect(screen.getByLabelText("As of date")).toHaveValue("2026-01-02");
+
+    rerender(
+      <DateOrExpression
+        id="as-of-date"
+        path="as_of_date"
+        value="2026-02-03"
+        schema={{ title: "As of date" }}
+        onChange={onChange}
+      />,
+    );
+    expect(screen.getByLabelText("As of date")).toHaveValue("2026-02-03");
   });
 
   it("lists only selectable sources", async () => {

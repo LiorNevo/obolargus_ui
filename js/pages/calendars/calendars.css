@@ -121,12 +121,6 @@
   gap: 8px;
 }
 
-.obolargus_calendars_detail textarea {
-  width: 100%;
-  font-family: ui-monospace, monospace;
-  font-size: 12px;
-}
-
 .obolargus_calendars_detail label {
   display: flex;
   flex-direction: column;

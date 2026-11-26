@@ -1,6 +1,6 @@
 import React, { memo, useState } from "react";
+import { CodeInput } from "lx_client/js/components/CodeInput";
 import { Input } from "lx_client/js/components/Input";
-import { TextArea } from "lx_client/js/components/TextArea";
 import { Button } from "lx_client/js/components/Button";
 import type { ParsedIdentifier } from "../../types/dataLoad";
 
@@ -99,10 +99,11 @@ export const IdentifierBatchInput = memo(function IdentifierBatchInput({
   return (
     <fieldset className="obolargus_identifier_batch">
       <legend>Identifiers</legend>
-      <TextArea
+      <CodeInput
         id="data-load-identifiers"
         label="Paste identifiers, one per line"
         value={text}
+        language="identifier"
         rows={6}
         placeholder={"QQQM\nTICKER:XNAS:AAPL"}
         describedBy="data-load-identifiers-help"

@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, type ComponentType } from "react";
+import { CodeInput } from "lx_client/js/components/CodeInput";
 import { MultiSelect } from "lx_client/js/components/MultiSelect";
 import type { SelectOption } from "lx_client/js/components/MultiSelect/types";
-import { TextArea } from "lx_client/js/components/TextArea";
 import {
   registerComponent,
   type FormFieldProps,
@@ -37,14 +37,15 @@ function identifiersToText(value: unknown): string {
     .join("\n");
 }
 
-/** Textarea adapter that edits a typed identifier array. */
+/** Code-input adapter that edits a typed identifier array. */
 export const IdentifierBatch = ((props: FormFieldProps) => {
   const text = identifiersToText(props.value);
   return (
-    <TextArea
+    <CodeInput
       id={props.id}
       label={String(props.schema.title ?? "Identifiers")}
       value={text}
+      language="identifier"
       rows={5}
       disabled={props.disabled}
       required={props.required}
@@ -55,7 +56,7 @@ export const IdentifierBatch = ((props: FormFieldProps) => {
   );
 }) as ComponentType<FormFieldProps>;
 
-/** Text adapter for date values or JSON expression objects. */
+/** Code adapter for date values or JSON/lx_engine expression objects. */
 export const DateOrExpression = ((props: FormFieldProps) => {
   const value = props.value;
   const text =
@@ -66,10 +67,11 @@ export const DateOrExpression = ((props: FormFieldProps) => {
         : "";
   const rows = value && typeof value === "object" ? 4 : 2;
   return (
-    <TextArea
+    <CodeInput
       id={props.id}
       label={String(props.schema.title ?? "Date")}
       value={text}
+      language="lx_engine"
       rows={rows}
       disabled={props.disabled}
       required={props.required}

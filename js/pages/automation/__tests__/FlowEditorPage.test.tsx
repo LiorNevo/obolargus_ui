@@ -25,6 +25,41 @@ jest.mock("react-router-dom", () => {
   };
 });
 
+jest.mock("lx_client/js/components/CodeInput", () => ({
+  CodeInput: ({
+    id,
+    label,
+    value,
+    onChange,
+    language,
+    errors = [],
+  }: {
+    id: string;
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    language?: string;
+    errors?: string[];
+  }) => (
+    <div>
+      <label htmlFor={id}>{label}</label>
+      <textarea
+        id={id}
+        value={value}
+        data-language={language}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {errors.length > 0 && (
+        <ul role="alert">
+          {errors.map((error) => (
+            <li key={error}>{error}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  ),
+}));
+
 jest.mock("lx_client/js/components/FlowEditor", () => {
   const React = jest.requireActual("react");
   const MockEditor = React.forwardRef(function MockEditor(
@@ -669,6 +704,7 @@ describe("FlowEditorPage error and subflow paths", () => {
     );
     const dialog = screen.getByRole("dialog", { name: "Run flow" });
     const inputs = within(dialog).getByLabelText("Run inputs (JSON)");
+    expect(inputs).toHaveAttribute("data-language", "json");
     fireEvent.change(inputs, { target: { value: "{" } });
     await userEvent.click(
       within(dialog).getByRole("button", { name: "Run with inputs" }),

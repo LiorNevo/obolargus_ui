@@ -1,10 +1,45 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   IdentifierBatchInput,
   parseIdentifierBatch,
   parseIdentifierLine,
 } from "../IdentifierBatchInput";
+
+jest.mock("lx_client/js/components/CodeInput", () => ({
+  CodeInput: ({
+    id,
+    label,
+    value,
+    onChange,
+    language,
+    errors = [],
+  }: {
+    id: string;
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    language?: string;
+    errors?: string[];
+  }) => (
+    <div>
+      <label htmlFor={id}>{label}</label>
+      <textarea
+        id={id}
+        value={value}
+        data-language={language}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {errors.length > 0 && (
+        <ul role="alert">
+          {errors.map((error) => (
+            <li key={error}>{error}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  ),
+}));
 
 describe("identifier parsing", () => {
   it("splits at the last colon and normalizes the type", () => {
@@ -52,6 +87,25 @@ describe("identifier parsing", () => {
 });
 
 describe("IdentifierBatchInput", () => {
+  it("parses edits from the code-editor paste box", () => {
+    const onChange = jest.fn();
+    render(
+      <IdentifierBatchInput text="" identifiers={[]} onChange={onChange} />,
+    );
+    const input = screen.getByLabelText("Paste identifiers, one per line");
+    expect(input).toHaveAttribute("data-language", "identifier");
+    fireEvent.change(input, {
+      target: { value: "QQQM\nTICKER:XNAS:AAPL" },
+    });
+    expect(onChange).toHaveBeenLastCalledWith(
+      "QQQM\nTICKER:XNAS:AAPL",
+      [
+        { scheme: "TICKER", value: "QQQM" },
+        { scheme: "TICKER:XNAS", value: "AAPL" },
+      ],
+    );
+  });
+
   it("adds a single identifier and shows the parsed pair", async () => {
     const user = userEvent.setup();
     const onChange = jest.fn();
