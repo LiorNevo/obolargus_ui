@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { axe } from "jest-axe";
@@ -104,6 +104,30 @@ describe("AutomationListPage", () => {
     await userEvent.type(screen.getByPlaceholderText("New flow name"), "My flow");
     await userEvent.click(
       screen.getByRole("button", { name: "Create blank flow" }),
+    );
+    await waitFor(() =>
+      expect(mockCreateFlow).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "My flow" }),
+      ),
+    );
+  });
+
+  it("confirms flow deletion in a themed dialog", async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = await screen.findByRole("alertdialog", {
+      name: "Delete flow?",
+    });
+    expect(dialog).toHaveTextContent("Daily reference load");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+  });
+
+  it("creates a blank flow when Enter is pressed in the name field", async () => {
+    mockCreateFlow.mockResolvedValue({ id: "blank" });
+    renderPage();
+    await userEvent.type(
+      screen.getByPlaceholderText("New flow name"),
+      "My flow{Enter}",
     );
     await waitFor(() =>
       expect(mockCreateFlow).toHaveBeenCalledWith(

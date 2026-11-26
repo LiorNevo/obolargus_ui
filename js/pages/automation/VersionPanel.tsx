@@ -40,7 +40,9 @@ export function VersionPanel({
             <div>
               <strong>v{version.version_number}</strong>{" "}
               {version.version_number === currentVersionNumber ? (
-                <Badge tone="success">current</Badge>
+                <Badge className="obolargus_automation_badge" tone="success">
+                  current
+                </Badge>
               ) : null}
               <p>{version.change_note ?? "No change note."}</p>
               <p className="obolargus_automation_meta">

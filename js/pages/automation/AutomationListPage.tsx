@@ -5,6 +5,7 @@ import { Button } from "lx_client/js/components/Button";
 import { Input } from "lx_client/js/components/Input";
 import { MultiSelect } from "lx_client/js/components/MultiSelect";
 import type { SelectOption } from "lx_client/js/components/MultiSelect/types";
+import { Modal } from "lx_client/js/components/Modal";
 import { Skeleton } from "lx_client/js/components/Skeleton";
 import { Table } from "lx_client/js/components/Table";
 import type { TableColumnDef } from "lx_client/js/components/Table/types";
@@ -77,6 +78,7 @@ function FlowRowActions({
   const archiveFlow = useArchiveFlowMutation(flow.id);
   const restoreFlow = useRestoreFlowMutation(flow.id);
   const deleteFlow = useDeleteFlowMutation(flow.id);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   return (
     <div className="obolargus_automation_row_actions">
       <Link to={`/automation/flows/${flow.id}`}>Open</Link>
@@ -106,22 +108,37 @@ function FlowRowActions({
           Archive
         </Button>
       )}
-      <Button
-        variant="danger"
-        onClick={() => {
-          if (
-            window.confirm(
-              `Delete the flow "${flow.name}"? This cannot be undone.`,
-            )
-          ) {
-            deleteFlow.mutate(undefined, {
-              onError: (error) => onError(errorMessage(error)),
-            });
-          }
-        }}
-      >
+      <Button variant="danger" onClick={() => setConfirmDelete(true)}>
         Delete
       </Button>
+      <Modal
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        title="Delete flow?"
+        role="alertdialog"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                setConfirmDelete(false);
+                deleteFlow.mutate(undefined, {
+                  onError: (error) => onError(errorMessage(error)),
+                });
+              }}
+            >
+              Delete
+            </Button>
+          </>
+        }
+      >
+        <p>
+          Delete the flow “{flow.name}”? This cannot be undone.
+        </p>
+      </Modal>
     </div>
   );
 }
@@ -241,16 +258,24 @@ export default function AutomationListPage() {
           </p>
         </div>
         <div className="obolargus_automation_header__actions">
-          <Input
-            id="new-flow-name"
-            label="New flow name"
-            value={name}
-            placeholder="New flow name"
-            onChange={setName}
-          />
-          <Button onClick={() => void create()} disabled={createFlow.isPending}>
-            {createFlow.isPending ? "Creating…" : "Create blank flow"}
-          </Button>
+          <form
+            className="obolargus_automation_create"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void create();
+            }}
+          >
+            <Input
+              id="new-flow-name"
+              label="New flow name"
+              value={name}
+              placeholder="New flow name"
+              onChange={setName}
+            />
+            <Button type="submit" disabled={createFlow.isPending}>
+              {createFlow.isPending ? "Creating…" : "Create blank flow"}
+            </Button>
+          </form>
         </div>
       </header>
 

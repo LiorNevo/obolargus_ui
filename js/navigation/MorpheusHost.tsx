@@ -66,10 +66,16 @@ export function MorpheusHost({ children }: { children: ReactNode }) {
   );
 }
 
-/** Floating launcher and panel, hidden on the full-page chat route. */
+/**
+ * Floating launcher and panel. Hidden on the full-page chat route and inside
+ * the full-height flow editor, where the launcher would cover the inspector.
+ */
 export function MorpheusHostChat() {
   const location = useLocation();
-  if (location.pathname.startsWith("/morpheus")) return null;
+  const editingFlow = /^\/automation\/flows\/[^/]+\/?$/.test(
+    location.pathname,
+  );
+  if (location.pathname.startsWith("/morpheus") || editingFlow) return null;
   return (
     <>
       <MorpheusLauncher />

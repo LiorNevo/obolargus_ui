@@ -204,9 +204,9 @@ export default function RunDetailPage() {
             {messages.data?.items.map((message) => (
               <li key={message.id}>
                 <p className="obolargus_automation_meta">
-                  {message.direction} · {message.node_id ?? "run"} ·{" "}
-                  {message.output_port ?? ""} · {formatInstant(message.ts)} ·{" "}
-                  {message.size_bytes} bytes
+                  {message.direction} · {message.node_id ?? "run"}
+                  {message.output_port ? ` · ${message.output_port}` : null} ·{" "}
+                  {formatInstant(message.ts)} · {message.size_bytes} bytes
                   {message.truncated ? " · truncated" : ""}
                 </p>
                 <CodeBlock ariaLabel="Message payload">

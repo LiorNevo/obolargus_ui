@@ -48,5 +48,9 @@ function statusTone(status: string): BadgeTone {
 
 /** A small status pill shared by the list and detail pages. */
 export function StatusBadge({ status }: { status: string }) {
-  return <Badge tone={statusTone(status)}>{status}</Badge>;
+  return (
+    <Badge className="obolargus_automation_badge" tone={statusTone(status)}>
+      {status}
+    </Badge>
+  );
 }
