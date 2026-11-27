@@ -24,6 +24,7 @@ function requestHeaders(init: RequestInit | undefined): Headers {
 function bridge(overrides: Partial<AuthBridge> = {}): AuthBridge {
   return {
     getAccessToken: () => "access-1",
+    getAccessTokenExpiresAt: () => null,
     hasSession: () => true,
     refreshAccessToken: jest.fn().mockResolvedValue(true),
     ...overrides,
@@ -51,6 +52,69 @@ describe("apiFetch", () => {
     expect(requestHeaders(fetchMock.mock.calls[0][1]).get("authorization")).toBe(
       "Bearer access-1",
     );
+  });
+
+  it("refreshes an expiring access token before sending the request", async () => {
+    let token = "old";
+    let expiresAt = Date.now() + 5_000;
+    const refresh = jest.fn(async () => {
+      token = "new";
+      expiresAt = Date.now() + 15 * 60_000;
+      return true;
+    });
+    const fetchMock = jest.fn().mockResolvedValue(response(200));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    configureAuthBridge(
+      bridge({
+        getAccessToken: () => token,
+        getAccessTokenExpiresAt: () => expiresAt,
+        refreshAccessToken: refresh,
+      }),
+    );
+
+    const result = await apiFetch("/assets");
+
+    expect(result.status).toBe(200);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(requestHeaders(fetchMock.mock.calls[0][1]).get("authorization")).toBe(
+      "Bearer new",
+    );
+  });
+
+  it("does not refresh a token that is not near expiry", async () => {
+    const refresh = jest.fn().mockResolvedValue(true);
+    const fetchMock = jest.fn().mockResolvedValue(response(200));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    configureAuthBridge(
+      bridge({
+        getAccessTokenExpiresAt: () => Date.now() + 10 * 60_000,
+        refreshAccessToken: refresh,
+      }),
+    );
+
+    await apiFetch("/assets");
+
+    expect(refresh).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not send an already-expired token when refresh fails", async () => {
+    const fetchMock = jest.fn();
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    configureAuthBridge(
+      bridge({
+        getAccessToken: () => "expired",
+        getAccessTokenExpiresAt: () => Date.now() - 1_000,
+        refreshAccessToken: jest.fn().mockResolvedValue(false),
+      }),
+    );
+
+    await expect(apiFetch("/assets")).rejects.toMatchObject({
+      status: 401,
+      code: "unauthorized",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("refreshes once for concurrent 401s and retries each request once", async () => {

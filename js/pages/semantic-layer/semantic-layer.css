@@ -173,7 +173,7 @@
   min-height: 1.5rem;
   padding: 0 var(--space-2);
   border: var(--border-width) solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--border-radius, 0);
   color: var(--accent-muted);
   font-size: var(--font-size-small);
   line-height: 1;

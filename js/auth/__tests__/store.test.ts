@@ -24,6 +24,7 @@ function resetStore(): void {
     status: "signedOut",
     actor: null,
     accessToken: null,
+    accessTokenExpiresAt: null,
     refreshToken: null,
     error: null,
   });
@@ -58,6 +59,7 @@ describe("auth store", () => {
       isPrimaryOwner: true,
     });
     expect(state.accessToken).toBe("access-1");
+    expect(state.accessTokenExpiresAt).toBeGreaterThan(Date.now());
     expect(state.refreshToken).toBe("refresh-1");
     expect(state.error).toBeNull();
 
@@ -77,6 +79,7 @@ describe("auth store", () => {
     const persisted = partialize?.(useAuthStore.getState());
     expect(persisted).toMatchObject({ actor: null, refreshToken: null });
     expect(persisted).not.toHaveProperty("accessToken");
+    expect(persisted).not.toHaveProperty("accessTokenExpiresAt");
   });
 
   it("rejects a malformed sign-in response", async () => {
@@ -152,6 +155,7 @@ describe("auth store", () => {
 
     await expect(pending).resolves.toBe(false);
     expect(useAuthStore.getState().accessToken).toBeNull();
+    expect(useAuthStore.getState().accessTokenExpiresAt).toBeNull();
     expect(useAuthStore.getState().actor).toBeNull();
   });
 
@@ -223,6 +227,9 @@ describe("auth store", () => {
 
     await expect(Promise.all([first, second])).resolves.toEqual([true, true]);
     expect(useAuthStore.getState().accessToken).toBe("access-2");
+    expect(useAuthStore.getState().accessTokenExpiresAt).toBeGreaterThan(
+      Date.now(),
+    );
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as unknown as [
       string,

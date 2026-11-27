@@ -51,6 +51,11 @@ export interface AuthStore {
   actor: AuthActor | null;
   /** Kept in memory only; never persisted. */
   accessToken: string | null;
+  /**
+   * Wall-clock expiry of `accessToken` in epoch milliseconds. Kept in memory
+   * only so requests can refresh before the server rejects them.
+   */
+  accessTokenExpiresAt: number | null;
   /** Persisted so a reload can refresh without another Google round-trip. */
   refreshToken: string | null;
   error: AuthErrorState | null;
@@ -58,6 +63,17 @@ export interface AuthStore {
   refreshAccessToken: () => Promise<boolean>;
   clearSession: () => void;
   clearError: () => void;
+}
+
+function expiryFromSeconds(expiresIn: unknown): number | null {
+  if (
+    typeof expiresIn !== "number" ||
+    !Number.isFinite(expiresIn) ||
+    expiresIn <= 0
+  ) {
+    return null;
+  }
+  return Date.now() + expiresIn * 1000;
 }
 
 function readErrorBody(text: string): { code: string; message: string } {
@@ -191,6 +207,7 @@ export const useAuthStore = create<AuthStore>()(
       status: "signedOut",
       actor: null,
       accessToken: null,
+      accessTokenExpiresAt: null,
       refreshToken: null,
       error: null,
 
@@ -226,6 +243,7 @@ export const useAuthStore = create<AuthStore>()(
               isPrimaryOwner: wire.actor.is_primary_owner === true,
             },
             accessToken: wire.access_token,
+            accessTokenExpiresAt: expiryFromSeconds(wire.expires_in),
             refreshToken: wire.refresh_token,
             error: null,
           });
@@ -265,7 +283,11 @@ export const useAuthStore = create<AuthStore>()(
             }
             // A sign-out or actor switch while the request was in flight wins.
             if (get().refreshToken !== token) return false;
-            set({ accessToken: wire.access_token, status: "signedIn" });
+            set({
+              accessToken: wire.access_token,
+              accessTokenExpiresAt: expiryFromSeconds(wire.expires_in),
+              status: "signedIn",
+            });
             return true;
           } catch (caught) {
             if (get().refreshToken !== token) return false;
@@ -304,6 +326,7 @@ export const useAuthStore = create<AuthStore>()(
           status: "signedOut",
           actor: null,
           accessToken: null,
+          accessTokenExpiresAt: null,
           refreshToken: null,
           error: null,
         }),
@@ -323,6 +346,8 @@ export const useAuthStore = create<AuthStore>()(
 
 configureAuthBridge({
   getAccessToken: () => useAuthStore.getState().accessToken,
+  getAccessTokenExpiresAt: () =>
+    useAuthStore.getState().accessTokenExpiresAt,
   hasSession: () => Boolean(useAuthStore.getState().refreshToken),
   refreshAccessToken: () => useAuthStore.getState().refreshAccessToken(),
 });

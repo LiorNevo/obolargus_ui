@@ -76,6 +76,7 @@ describe("server-sent events", () => {
     globalThis.fetch = fetchMock as unknown as typeof fetch;
     configureAuthBridge({
       getAccessToken: () => "access-1",
+      getAccessTokenExpiresAt: () => null,
       hasSession: () => true,
       refreshAccessToken: jest.fn().mockResolvedValue(true),
     });
@@ -109,6 +110,7 @@ describe("server-sent events", () => {
     }) as unknown as typeof fetch;
     configureAuthBridge({
       getAccessToken: () => "expired",
+      getAccessTokenExpiresAt: () => null,
       hasSession: () => false,
       refreshAccessToken: jest.fn().mockResolvedValue(false),
     });

@@ -15,6 +15,7 @@ describe("MorpheusHost", () => {
   it("sends the bearer token on Morpheus requests", async () => {
     configureAuthBridge({
       getAccessToken: () => "access-token",
+      getAccessTokenExpiresAt: () => null,
       hasSession: () => true,
       refreshAccessToken: async () => true,
     });

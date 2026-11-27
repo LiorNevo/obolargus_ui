@@ -46,11 +46,16 @@ export class HttpError extends Error {
 export interface AuthBridge {
   /** Current in-memory access token, or `null` before a refresh. */
   getAccessToken(): string | null;
+  /** Wall-clock expiry of the access token in epoch milliseconds, when known. */
+  getAccessTokenExpiresAt(): number | null;
   /** True while a refresh token is held, so a 401 is worth a refresh. */
   hasSession(): boolean;
   /** Refreshes once and reports whether a usable access token now exists. */
   refreshAccessToken(): Promise<boolean>;
 }
+
+/** Refresh this long before the access token expires to avoid a failed call. */
+const REFRESH_SKEW_MS = 60_000;
 
 let authBridge: AuthBridge | null = null;
 let refreshInFlight: Promise<boolean> | null = null;
@@ -210,6 +215,27 @@ export async function apiFetch(
   const mergedHeaders = mergeHeaders(headers);
   if (init.body !== undefined && init.body !== null && !mergedHeaders.has("content-type")) {
     mergedHeaders.set("content-type", "application/json");
+  }
+
+  if (!signal?.aborted && useAuth && canRefresh && authBridge?.hasSession()) {
+    const now = Date.now();
+    const token = authBridge.getAccessToken();
+    const expiresAt = authBridge.getAccessTokenExpiresAt();
+    const expired = token === null || (expiresAt !== null && expiresAt <= now);
+    const refreshSoon =
+      token === null ||
+      (expiresAt !== null && expiresAt - now <= REFRESH_SKEW_MS);
+    if (refreshSoon) {
+      const refreshed = await refreshOnce();
+      if (!refreshed && expired) {
+        throw new HttpError(
+          401,
+          "unauthorized",
+          "Your session has expired. Sign in again.",
+          false,
+        );
+      }
+    }
   }
 
   const firstToken = useAuth ? authBridge?.getAccessToken() ?? null : null;

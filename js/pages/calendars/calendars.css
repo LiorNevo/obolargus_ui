@@ -30,7 +30,7 @@
 .obolargus_calendars_error {
   margin: 0;
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: var(--border-radius, 0);
   background: color-mix(in srgb, var(--obolargus-accent, var(--primary)) 10%, transparent);
 }
 
@@ -88,7 +88,7 @@
   color: var(--obolargus-accent, var(--primary));
   font: inherit;
   font-weight: 600;
-  cursor: pointer;
+  cursor: var(--cursor-pointer, pointer);
 }
 
 .obolargus_calendars_detail {
@@ -97,7 +97,7 @@
   gap: 10px;
   padding: 16px;
   border: 1px solid var(--obolargus-border, var(--border));
-  border-radius: 8px;
+  border-radius: var(--border-radius, 0);
 }
 
 .obolargus_calendars_detail h2,
